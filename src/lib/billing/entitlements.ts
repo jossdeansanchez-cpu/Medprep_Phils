@@ -8,6 +8,7 @@ export function hasAtLeast(plan: PlanTier, min: PlanTier): boolean {
 /** Resolve the current user's effective plan from the subscriptions table. */
 export async function getEntitlements(): Promise<{
   plan: PlanTier;
+  status: string;
   entitled: boolean;
   currentPeriodEnd: string | null;
 }> {
@@ -16,6 +17,7 @@ export async function getEntitlements(): Promise<{
   const row = Array.isArray(data) ? data[0] : data;
   return {
     plan: (row?.plan ?? "free") as PlanTier,
+    status: row?.status ?? "inactive",
     entitled: !!row?.entitled,
     currentPeriodEnd: row?.current_period_end ?? null,
   };
