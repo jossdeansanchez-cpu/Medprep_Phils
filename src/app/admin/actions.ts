@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
@@ -162,6 +163,34 @@ export async function createTemplate(formData: FormData) {
   revalidatePath("/admin/exams");
   revalidatePath("/dashboard");
   revalidatePath("/practice");
+}
+
+export async function updateTemplate(id: string, formData: FormData) {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const category = String(formData.get("category") ?? "mock_exam");
+  const timeRaw = String(formData.get("time_limit_minutes") ?? "").trim();
+  const subjectIds = formData.getAll("subjects").map(String).filter(Boolean);
+
+  const { error } = await supabase
+    .from("exam_templates")
+    .update({
+      title: String(formData.get("title") ?? "").trim(),
+      category,
+      questions_per_subject: Number(formData.get("questions_per_subject") ?? 5),
+      time_limit_minutes: timeRaw ? Number(timeRaw) : null,
+      pass_average: Number(formData.get("pass_average") ?? 75),
+      min_subject_score: Number(formData.get("min_subject_score") ?? 50),
+      subject_ids: subjectIds.length > 0 ? subjectIds : null,
+      is_published: formData.get("is_published") === "on",
+    })
+    .eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/exams");
+  revalidatePath("/dashboard");
+  revalidatePath("/practice");
+  redirect("/admin/exams");
 }
 
 export async function setTemplatePublished(id: string, published: boolean) {

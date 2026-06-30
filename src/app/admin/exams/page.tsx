@@ -1,11 +1,13 @@
+import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import {
   createTemplate,
   setTemplatePublished,
   deleteTemplate,
 } from "@/app/admin/actions";
+import ExamForm from "./ExamForm";
 import type { ExamTemplate, Subject } from "@/lib/types";
-import { CATEGORY_ORDER, CATEGORY_LABELS, categoryLabel } from "@/lib/categories";
+import { categoryLabel } from "@/lib/categories";
 
 export default async function ExamsPage() {
   const supabase = await createClient();
@@ -22,102 +24,7 @@ export default async function ExamsPage() {
       {/* Create form */}
       <div>
         <h1 className="mb-3 text-xl font-semibold">New exam template</h1>
-        <form action={createTemplate} className="card space-y-3">
-          <div>
-            <label className="label" htmlFor="title">Title</label>
-            <input id="title" name="title" required className="input" placeholder="PLE Mock Exam 1" />
-          </div>
-
-          <div>
-            <label className="label" htmlFor="category">Category</label>
-            <select id="category" name="category" className="input" defaultValue="daily_practice">
-              {CATEGORY_ORDER.map((c) => (
-                <option key={c} value={c}>
-                  {CATEGORY_LABELS[c]}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label" htmlFor="questions_per_subject">Questions / subject</label>
-              <input
-                id="questions_per_subject"
-                name="questions_per_subject"
-                type="number"
-                min={1}
-                defaultValue={5}
-                className="input"
-              />
-            </div>
-            <div>
-              <label className="label" htmlFor="time_limit_minutes">Time limit (min)</label>
-              <input
-                id="time_limit_minutes"
-                name="time_limit_minutes"
-                type="number"
-                min={1}
-                placeholder="e.g. 60"
-                className="input"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label" htmlFor="pass_average">Pass average (%)</label>
-              <input
-                id="pass_average"
-                name="pass_average"
-                type="number"
-                min={0}
-                max={100}
-                defaultValue={75}
-                className="input"
-              />
-            </div>
-            <div>
-              <label className="label" htmlFor="min_subject_score">Min subject (%)</label>
-              <input
-                id="min_subject_score"
-                name="min_subject_score"
-                type="number"
-                min={0}
-                max={100}
-                defaultValue={50}
-                className="input"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="label">Subjects</label>
-            <p className="-mt-0.5 mb-2 text-xs text-[var(--muted)]">
-              Pick which subjects this exam covers. Leave all unchecked to include every subject.
-            </p>
-            <div className="grid max-h-44 grid-cols-1 gap-1 overflow-y-auto rounded-lg border border-[var(--border)] p-2 sm:grid-cols-2">
-              {subjects.map((s) => (
-                <label key={s.id} className="flex items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-black/[0.03]">
-                  <input type="checkbox" name="subjects" value={s.id} />
-                  {s.name}
-                </label>
-              ))}
-            </div>
-          </div>
-
-          <label className="flex items-center gap-2 text-sm">
-            <input type="checkbox" name="is_published" defaultChecked />
-            Publish immediately
-          </label>
-
-          <button type="submit" className="btn-primary w-full">Create exam</button>
-          <p className="text-xs text-[var(--muted)]">
-            All categories are timed and scored. Leave the time limit blank for an untimed
-            but still-scored set. Defaults follow the PLE rule (75% average, no subject below 50%).
-            Mock exams require a Pro plan; daily and weekly practice are open to all students.
-          </p>
-        </form>
+        <ExamForm action={createTemplate} subjects={subjects} submitLabel="Create exam" />
       </div>
 
       {/* List */}
@@ -159,6 +66,9 @@ export default async function ExamsPage() {
                   </div>
                 </div>
                 <div className="mt-3 flex gap-2">
+                  <Link href={`/admin/exams/${t.id}/edit`} className="btn-outline text-xs">
+                    Edit
+                  </Link>
                   <form action={setTemplatePublished.bind(null, t.id, !t.is_published)}>
                     <button className="btn-outline text-xs" type="submit">
                       {t.is_published ? "Unpublish" : "Publish"}
