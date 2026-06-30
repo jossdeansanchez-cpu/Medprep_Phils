@@ -4,16 +4,18 @@ import {
   setTemplatePublished,
   deleteTemplate,
 } from "@/app/admin/actions";
-import type { ExamTemplate } from "@/lib/types";
+import type { ExamTemplate, Subject } from "@/lib/types";
 import { CATEGORY_ORDER, CATEGORY_LABELS, categoryLabel } from "@/lib/categories";
 
 export default async function ExamsPage() {
   const supabase = await createClient();
-  const { data } = await supabase
-    .from("exam_templates")
-    .select("*")
-    .order("created_at", { ascending: false });
+  const [{ data }, { data: subjectsData }] = await Promise.all([
+    supabase.from("exam_templates").select("*").order("created_at", { ascending: false }),
+    supabase.from("subjects").select("*").order("order"),
+  ]);
   const templates = (data ?? []) as ExamTemplate[];
+  const subjects = (subjectsData ?? []) as Subject[];
+  const subjectName = (id: string) => subjects.find((s) => s.id === id)?.name ?? "subject";
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_1.2fr]">
@@ -89,6 +91,21 @@ export default async function ExamsPage() {
             </div>
           </div>
 
+          <div>
+            <label className="label">Subjects</label>
+            <p className="-mt-0.5 mb-2 text-xs text-[var(--muted)]">
+              Pick which subjects this exam covers. Leave all unchecked to include every subject.
+            </p>
+            <div className="grid max-h-44 grid-cols-1 gap-1 overflow-y-auto rounded-lg border border-[var(--border)] p-2 sm:grid-cols-2">
+              {subjects.map((s) => (
+                <label key={s.id} className="flex items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-black/[0.03]">
+                  <input type="checkbox" name="subjects" value={s.id} />
+                  {s.name}
+                </label>
+              ))}
+            </div>
+          </div>
+
           <label className="flex items-center gap-2 text-sm">
             <input type="checkbox" name="is_published" defaultChecked />
             Publish immediately
@@ -131,6 +148,13 @@ export default async function ExamsPage() {
                       {t.questions_per_subject} Q/subject ·{" "}
                       {t.time_limit_minutes ? `${t.time_limit_minutes} min` : "untimed"} · pass{" "}
                       {t.pass_average}% / min {t.min_subject_score}%
+                    </p>
+                    <p className="mt-1 text-xs text-[var(--muted)]">
+                      {!t.subject_ids || t.subject_ids.length === 0
+                        ? "All subjects"
+                        : t.subject_ids.length <= 3
+                          ? t.subject_ids.map(subjectName).join(", ")
+                          : `${t.subject_ids.length} subjects`}
                     </p>
                   </div>
                 </div>

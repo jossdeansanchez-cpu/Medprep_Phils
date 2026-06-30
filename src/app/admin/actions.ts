@@ -142,6 +142,7 @@ export async function createTemplate(formData: FormData) {
 
   const category = String(formData.get("category") ?? "mock_exam");
   const timeRaw = String(formData.get("time_limit_minutes") ?? "").trim();
+  const subjectIds = formData.getAll("subjects").map(String).filter(Boolean);
 
   // Every category is a timed, scored exam (mock engine).
   const { error } = await supabase.from("exam_templates").insert({
@@ -152,6 +153,8 @@ export async function createTemplate(formData: FormData) {
     time_limit_minutes: timeRaw ? Number(timeRaw) : null,
     pass_average: Number(formData.get("pass_average") ?? 75),
     min_subject_score: Number(formData.get("min_subject_score") ?? 50),
+    // null = all subjects
+    subject_ids: subjectIds.length > 0 ? subjectIds : null,
     is_published: formData.get("is_published") === "on",
     created_by: profile.id,
   });

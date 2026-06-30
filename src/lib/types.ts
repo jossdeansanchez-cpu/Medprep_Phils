@@ -46,6 +46,7 @@ export interface ExamTemplate {
   time_limit_minutes: number | null;
   pass_average: number;
   min_subject_score: number;
+  subject_ids: string[] | null;
   is_published: boolean;
   created_by: string | null;
   created_at: string;
