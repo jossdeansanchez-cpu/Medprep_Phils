@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
-import Nav from "@/components/Nav";
+import AppShell from "@/components/AppShell";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { OptionLabel, QuestionOption } from "@/lib/types";
@@ -64,18 +63,10 @@ export default async function ResultsPage({
   const totalCorrect = rows.filter((r) => r.is_correct).length;
 
   return (
-    <>
-      <Nav />
-      <main className="mx-auto max-w-3xl space-y-6 px-4 py-8">
-        <div>
-          <Link href="/dashboard" className="text-sm text-[var(--muted)] hover:underline">
-            ← Dashboard
-          </Link>
-          <h1 className="mt-1 text-2xl font-semibold">{template.title} — Results</h1>
-        </div>
-
+    <AppShell profile={profile} greeting={`${template.title}`} title="Results">
+      <div className="mx-auto max-w-3xl space-y-6">
         {/* Score summary */}
-        <div className="card flex flex-col items-center gap-2 text-center">
+        <div className="glass flex flex-col items-center gap-2 p-5 text-center">
           <div
             className={`badge text-sm ${
               attempt.passed
@@ -96,7 +87,7 @@ export default async function ResultsPage({
         </div>
 
         {/* Per-subject breakdown */}
-        <section className="card">
+        <section className="glass p-5">
           <h2 className="mb-3 font-medium">Per-subject scores</h2>
           <div className="space-y-2.5">
             {subjects.map((s) => {
@@ -127,7 +118,7 @@ export default async function ResultsPage({
         <section className="space-y-3">
           <h2 className="font-medium">Review</h2>
           {rows.map((r) => (
-            <div key={r.item_no} className="card">
+            <div key={r.item_no} className="glass p-5">
               <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
                 Q{r.item_no} · {r.subject_name} ·{" "}
                 <span className={r.is_correct ? "text-[var(--primary)]" : "text-[var(--danger)]"}>
@@ -171,7 +162,7 @@ export default async function ResultsPage({
             </div>
           ))}
         </section>
-      </main>
-    </>
+      </div>
+    </AppShell>
   );
 }

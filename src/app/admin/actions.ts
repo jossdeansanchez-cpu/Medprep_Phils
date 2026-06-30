@@ -6,6 +6,32 @@ import { requireAdmin } from "@/lib/auth";
 import { validateRows, type RawRow, type ValidQuestion } from "@/lib/csv";
 import type { ExamMode } from "@/lib/types";
 
+export type FormState = { error?: string; message?: string } | undefined;
+
+/** Create a pre-confirmed student account (admin only). */
+export async function createStudent(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  await requireAdmin();
+  const full_name = String(formData.get("full_name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const password = String(formData.get("password") ?? "");
+
+  if (password.length < 6) return { error: "Password must be at least 6 characters." };
+
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_create_student", {
+    p_email: email,
+    p_password: password,
+    p_full_name: full_name,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/students");
+  return { message: `Student ${email} created. They can sign in right away.` };
+}
+
 /**
  * Re-validate the submitted rows server-side (never trust the client preview),
  * then insert the valid questions. Returns how many were inserted/skipped.

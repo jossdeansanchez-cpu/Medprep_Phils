@@ -120,11 +120,16 @@ export default function ExamRunner({
   );
 
   if (!q) {
-    return <main className="mx-auto max-w-2xl px-4 py-10">This exam has no questions.</main>;
+    return (
+      <main className="app-gradient min-h-screen px-4 py-10">
+        <p className="mx-auto max-w-2xl">This exam has no questions.</p>
+      </main>
+    );
   }
 
   return (
-    <main className="mx-auto max-w-3xl px-4 py-6">
+    <main className="app-gradient min-h-screen px-4 py-6">
+      <div className="mx-auto max-w-3xl">
       {/* Header */}
       <div className="mb-4 flex items-center justify-between">
         <div>
@@ -172,7 +177,7 @@ export default function ExamRunner({
       </div>
 
       {/* Question card */}
-      <div className="card">
+      <div className="glass p-5">
         <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
           Q{index + 1} · {q.subject_name}
         </p>
@@ -249,6 +254,7 @@ export default function ExamRunner({
           You can review answers using the grid above before submitting.
         </p>
       )}
+      </div>
     </main>
   );
 }
