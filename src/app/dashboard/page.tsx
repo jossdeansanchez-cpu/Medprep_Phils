@@ -70,8 +70,8 @@ export default async function Dashboard() {
         <section className="glass p-5 lg:col-span-2">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-semibold">Next mock exam</h2>
-            <Link href="/practice" className="text-sm font-medium text-[var(--primary)]">
-              Study mode →
+            <Link href="/exams" className="text-sm font-medium text-[var(--primary)]">
+              All exams →
             </Link>
           </div>
 

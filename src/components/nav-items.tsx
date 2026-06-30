@@ -25,8 +25,8 @@ export const navItems: NavItem[] = [
     ),
   },
   {
-    href: "/practice",
-    label: "Study mode",
+    href: "/exams",
+    label: "Exams",
     icon: (
       <svg className={ICON} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M4 5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
