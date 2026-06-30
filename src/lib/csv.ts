@@ -1,8 +1,10 @@
 import type { OptionLabel, QuestionOption, Subject } from "@/lib/types";
+import type { ExamCategory } from "@/lib/categories";
 
 /** Expected column headers in the upload template (case-insensitive). */
 export const CSV_HEADERS = [
   "subject",
+  "category",
   "stem",
   "option_a",
   "option_b",
@@ -18,10 +20,21 @@ export type RawRow = Record<string, string | undefined>;
 export interface ValidQuestion {
   subject_id: string;
   subject_name: string;
+  category: ExamCategory;
   stem: string;
   options: QuestionOption[];
   correct_label: OptionLabel;
   explanation: string | null;
+}
+
+/** Map a free-text category cell to an exam category. Blank defaults to daily. */
+export function parseCategory(raw: string): ExamCategory | null {
+  const v = raw.trim().toLowerCase().replace(/[\s_-]+/g, "");
+  if (v === "") return "daily_practice";
+  if (["daily", "dailypractice"].includes(v)) return "daily_practice";
+  if (["weekly", "weeklypractice"].includes(v)) return "weekly_practice";
+  if (["mock", "mockexam", "mockexams"].includes(v)) return "mock_exam";
+  return null;
 }
 
 export interface RowError {
@@ -83,6 +96,10 @@ export function validateRows(rows: RawRow[], subjects: Subject[]): ValidationRes
     else if (!options.some((o) => o.label === correct))
       rowErrors.push(`correct answer ${correct} has no matching option`);
 
+    const category = parseCategory(norm(r.category));
+    if (category === null)
+      rowErrors.push(`category must be daily, weekly, or mock (got "${norm(r.category)}")`);
+
     if (rowErrors.length > 0) {
       errors.push({ row: rowNum, message: rowErrors.join("; ") });
       return;
@@ -91,6 +108,7 @@ export function validateRows(rows: RawRow[], subjects: Subject[]): ValidationRes
     valid.push({
       subject_id: subject!.id,
       subject_name: subject!.name,
+      category: category!,
       stem,
       options,
       correct_label: correct as OptionLabel,

@@ -90,6 +90,7 @@ export async function importQuestions(
 
   const payload = (valid as ValidQuestion[]).map((q) => ({
     subject_id: q.subject_id,
+    category: q.category,
     stem: q.stem,
     options: q.options,
     correct_label: q.correct_label,
@@ -120,6 +121,17 @@ export async function deleteQuestion(id: string) {
   await requireAdmin();
   const supabase = await createClient();
   const { error } = await supabase.from("questions").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/questions");
+}
+
+export async function setQuestionCategory(id: string, category: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("questions")
+    .update({ category })
+    .eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/admin/questions");
 }

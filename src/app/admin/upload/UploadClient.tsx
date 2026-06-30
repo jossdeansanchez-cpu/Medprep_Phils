@@ -5,12 +5,14 @@ import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { CSV_HEADERS, validateRows, type RawRow, type ValidationResult } from "@/lib/csv";
 import { importQuestions } from "@/app/admin/actions";
+import { CATEGORY_LABELS } from "@/lib/categories";
 import type { Subject } from "@/lib/types";
 
 const SAMPLE = [
   CSV_HEADERS.join(","),
-  `Anatomy,"The brachial plexus is formed by the ventral rami of which spinal nerves?",C5-T1,C3-C5,L1-L4,T1-T4,,A,"The brachial plexus arises from ventral rami of C5 through T1."`,
-  `Pharmacology,"Which drug is a beta-blocker?",Metoprolol,Amlodipine,Losartan,Furosemide,,A,"Metoprolol is a selective beta-1 adrenergic blocker."`,
+  `Anatomy,daily,"The brachial plexus is formed by the ventral rami of which spinal nerves?",C5-T1,C3-C5,L1-L4,T1-T4,,A,"The brachial plexus arises from ventral rami of C5 through T1."`,
+  `Pharmacology,weekly,"Which drug is a beta-blocker?",Metoprolol,Amlodipine,Losartan,Furosemide,,A,"Metoprolol is a selective beta-1 adrenergic blocker."`,
+  `Medicine,mock,"Most common cause of acute pancreatitis?",Gallstones,Alcohol,Hypertriglyceridemia,Trauma,,A,"Gallstones are the leading cause of acute pancreatitis."`,
 ].join("\n");
 
 export default function UploadClient({ subjects }: { subjects: Subject[] }) {
@@ -81,8 +83,10 @@ export default function UploadClient({ subjects }: { subjects: Subject[] }) {
       <div>
         <h1 className="text-xl font-semibold">Upload question bank</h1>
         <p className="text-sm text-[var(--muted)]">
-          CSV or Excel with columns: {CSV_HEADERS.join(", ")}. The{" "}
-          <code>subject</code> must match one of the 12 PLE subjects (e.g. &quot;Anatomy&quot;).
+          CSV or Excel with columns: {CSV_HEADERS.join(", ")}. <code>subject</code> must
+          match one of the 12 PLE subjects (e.g. &quot;Anatomy&quot;), and <code>category</code>{" "}
+          is the exam type: <code>daily</code>, <code>weekly</code>, or <code>mock</code>{" "}
+          (blank = daily).
         </p>
       </div>
 
@@ -156,6 +160,7 @@ export default function UploadClient({ subjects }: { subjects: Subject[] }) {
                 <thead className="text-xs uppercase text-[var(--muted)]">
                   <tr>
                     <th className="py-1 pr-3">Subject</th>
+                    <th className="py-1 pr-3">Type</th>
                     <th className="py-1 pr-3">Stem</th>
                     <th className="py-1 pr-3">Opts</th>
                     <th className="py-1">Ans</th>
@@ -165,7 +170,10 @@ export default function UploadClient({ subjects }: { subjects: Subject[] }) {
                   {result.valid.slice(0, 10).map((q, i) => (
                     <tr key={i} className="border-t border-[var(--border)]">
                       <td className="py-1.5 pr-3 whitespace-nowrap">{q.subject_name}</td>
-                      <td className="py-1.5 pr-3">{q.stem.slice(0, 70)}{q.stem.length > 70 ? "…" : ""}</td>
+                      <td className="py-1.5 pr-3 whitespace-nowrap">
+                        {CATEGORY_LABELS[q.category]}
+                      </td>
+                      <td className="py-1.5 pr-3">{q.stem.slice(0, 60)}{q.stem.length > 60 ? "…" : ""}</td>
                       <td className="py-1.5 pr-3">{q.options.length}</td>
                       <td className="py-1.5 font-medium">{q.correct_label}</td>
                     </tr>
