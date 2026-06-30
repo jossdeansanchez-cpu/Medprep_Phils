@@ -4,12 +4,11 @@ import AppShell from "@/components/AppShell";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getEntitlements, hasAtLeast } from "@/lib/billing/entitlements";
-import { startAttempt } from "@/lib/exam";
+import ExamCard from "@/components/ExamCard";
 import {
   CATEGORY_ORDER,
   CATEGORY_LABELS,
   CATEGORY_BLURB,
-  categoryLabel,
   type ExamCategory,
 } from "@/lib/categories";
 import type { ExamTemplate } from "@/lib/types";
@@ -19,44 +18,6 @@ const ICONS: Record<ExamCategory, string> = {
   weekly_practice: "🗓️",
   mock_exam: "🩺",
 };
-
-function isRecent(createdAt: string): boolean {
-  return Date.now() - new Date(createdAt).getTime() < 7 * 24 * 60 * 60 * 1000;
-}
-
-function ExamCard({ t, canMock }: { t: ExamTemplate; canMock: boolean }) {
-  const locked = t.category === "mock_exam" && !canMock;
-  return (
-    <div className="glass flex flex-col justify-between gap-3 p-5">
-      <div>
-        <div className="mb-2 flex items-center gap-2">
-          <span className="badge bg-[var(--primary)]/10 text-[var(--primary)]">
-            {categoryLabel(t.category)}
-          </span>
-          {isRecent(t.created_at) && (
-            <span className="badge bg-amber-100 text-amber-700">New</span>
-          )}
-        </div>
-        <h3 className="font-semibold">{t.title}</h3>
-        <p className="mt-1 text-sm text-[var(--muted)]">
-          {t.questions_per_subject} questions / subject ·{" "}
-          {t.time_limit_minutes ? `${t.time_limit_minutes} min` : "untimed"}
-        </p>
-      </div>
-      {locked ? (
-        <Link href="/pricing" className="btn-primary w-full whitespace-nowrap">
-          ✦ Unlock with Pro
-        </Link>
-      ) : (
-        <form action={startAttempt.bind(null, t.id)}>
-          <button type="submit" className="btn-primary w-full">
-            Start
-          </button>
-        </form>
-      )}
-    </div>
-  );
-}
 
 export default async function ExamsCatalog() {
   const profile = await getCurrentProfile();

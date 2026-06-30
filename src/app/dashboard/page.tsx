@@ -3,8 +3,8 @@ import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { startAttempt } from "@/lib/exam";
 import { getEntitlements, hasAtLeast } from "@/lib/billing/entitlements";
+import ExamCard from "@/components/ExamCard";
 import UpgradeGate from "@/components/UpgradeGate";
 import { categoryLabel, type ExamCategory } from "@/lib/categories";
 import type { ExamTemplate } from "@/lib/types";
@@ -24,10 +24,9 @@ export default async function Dashboard() {
 
   const supabase = await createClient();
 
-  const { data: mockTemplates } = await supabase
+  const { data: publishedTemplates } = await supabase
     .from("exam_templates")
     .select("*")
-    .eq("category", "mock_exam")
     .eq("is_published", true)
     .order("created_at", { ascending: false });
 
@@ -40,9 +39,9 @@ export default async function Dashboard() {
   const canMock = hasAtLeast(plan, "pro");
   const canHistory = hasAtLeast(plan, "basic");
 
-  const templates = (mockTemplates ?? []) as ExamTemplate[];
+  const templates = (publishedTemplates ?? []) as ExamTemplate[];
   const history = (attempts ?? []) as unknown as AttemptRow[];
-  const nextExam = templates[0];
+  const newest = templates.slice(0, 3);
 
   const submitted = history.filter((a) => a.status === "submitted");
   const inProgress = history.filter((a) => a.status !== "submitted").length;
@@ -65,79 +64,50 @@ export default async function Dashboard() {
       greeting={`Welcome back, ${(profile.full_name || "there").split(" ")[0]} 👋`}
       title="Dashboard"
     >
-      {/* Row 1: Next exam + Exam statistics */}
-      <div className="grid gap-4 lg:grid-cols-3">
-        <section className="glass p-5 lg:col-span-2">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold">Next mock exam</h2>
-            <Link href="/exams" className="text-sm font-medium text-[var(--primary)]">
-              All exams →
-            </Link>
-          </div>
-
-          {nextExam ? (
-            <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-between">
-              <div className="flex items-center gap-4">
-                <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[var(--primary)]/10 text-2xl">
-                  🩺
-                </div>
-                <div>
-                  <p className="text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
-                    Comprehensive PLE
-                  </p>
-                  <p className="text-lg font-semibold">{nextExam.title}</p>
-                  <p className="text-sm text-[var(--muted)]">
-                    {nextExam.questions_per_subject} questions / subject ·{" "}
-                    {nextExam.time_limit_minutes
-                      ? `${nextExam.time_limit_minutes} min`
-                      : "untimed"}
-                  </p>
-                </div>
-              </div>
-              {canMock ? (
-                <form action={startAttempt.bind(null, nextExam.id)}>
-                  <button type="submit" className="btn-primary">
-                    Start exam
-                  </button>
-                </form>
-              ) : (
-                <Link href="/pricing" className="btn-primary whitespace-nowrap">
-                  ✦ Unlock with Pro
+      {/* Available exams (categorized via card badges, newest first) */}
+      <section className="mb-4">
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Available exams</h2>
+          <Link href="/exams" className="text-sm font-medium text-[var(--primary)]">
+            All exams →
+          </Link>
+        </div>
+        {newest.length === 0 ? (
+          <div className="glass p-5 text-sm text-[var(--muted)]">
+            No exams published yet.
+            {profile.role === "admin" && (
+              <>
+                {" "}
+                <Link href="/admin/exams" className="text-[var(--primary)] underline">
+                  Create one.
                 </Link>
-              )}
-            </div>
-          ) : (
-            <p className="text-sm text-[var(--muted)]">
-              No mock exams published yet.
-              {profile.role === "admin" && (
-                <>
-                  {" "}
-                  <Link href="/admin/exams" className="text-[var(--primary)] underline">
-                    Create one.
-                  </Link>
-                </>
-              )}
-            </p>
-          )}
-        </section>
+              </>
+            )}
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {newest.map((t) => (
+              <ExamCard key={t.id} t={t} canMock={canMock} />
+            ))}
+          </div>
+        )}
+      </section>
 
-        <section className="glass p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-semibold">Exam statistics</h2>
-          </div>
-          <div className="mb-3 flex h-2.5 w-full overflow-hidden rounded-full bg-black/[0.06]">
-            <div className="h-full bg-[var(--primary)]" style={{ width: `${seg(passed)}%` }} />
-            <div className="h-full bg-amber-400" style={{ width: `${seg(inProgress)}%` }} />
-            <div className="h-full bg-[var(--danger)]" style={{ width: `${seg(failed)}%` }} />
-          </div>
-          <div className="grid grid-cols-4 gap-2 text-center">
-            <Stat tiny label="Taken" value={total} />
-            <Stat tiny label="Passed" value={passed} />
-            <Stat tiny label="Active" value={inProgress} />
-            <Stat tiny label="Failed" value={failed} />
-          </div>
-        </section>
-      </div>
+      {/* Exam statistics */}
+      <section className="glass mb-4 p-5">
+        <h2 className="mb-4 font-semibold">Exam statistics</h2>
+        <div className="mb-3 flex h-2.5 w-full overflow-hidden rounded-full bg-black/[0.06]">
+          <div className="h-full bg-[var(--primary)]" style={{ width: `${seg(passed)}%` }} />
+          <div className="h-full bg-amber-400" style={{ width: `${seg(inProgress)}%` }} />
+          <div className="h-full bg-[var(--danger)]" style={{ width: `${seg(failed)}%` }} />
+        </div>
+        <div className="grid grid-cols-4 gap-2 text-center">
+          <Stat tiny label="Taken" value={total} />
+          <Stat tiny label="Passed" value={passed} />
+          <Stat tiny label="Active" value={inProgress} />
+          <Stat tiny label="Failed" value={failed} />
+        </div>
+      </section>
 
       {/* Row 2: Recent attempts table + stat tiles & promo */}
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
@@ -224,10 +194,10 @@ export default async function Dashboard() {
               Set up your next mock exam
             </p>
             <Link
-              href={profile.role === "admin" ? "/admin/exams" : "/practice"}
+              href={profile.role === "admin" ? "/admin/exams" : "/exams"}
               className="mt-3 inline-flex rounded-lg bg-white/95 px-3 py-2 text-sm font-medium text-[var(--primary)] hover:bg-white"
             >
-              {profile.role === "admin" ? "Go to exam center" : "Go to study mode"}
+              {profile.role === "admin" ? "Go to exam center" : "Browse exams"}
             </Link>
           </div>
         </div>
