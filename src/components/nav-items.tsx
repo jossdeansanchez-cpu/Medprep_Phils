@@ -56,6 +56,17 @@ export const navItems: NavItem[] = [
     ),
   },
   {
+    href: "/admin/performance",
+    label: "Performance",
+    adminOnly: true,
+    icon: (
+      <svg className={ICON} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M16 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0z" />
+        <path d="M2 21a8 8 0 0 1 13.3-6M19 16v5M22 18.5l-3 3-3-3" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin/questions",
     label: "Question Bank",
     adminOnly: true,

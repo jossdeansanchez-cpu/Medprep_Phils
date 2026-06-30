@@ -5,7 +5,6 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
 import { validateRows, type RawRow, type ValidQuestion } from "@/lib/csv";
-import type { ExamMode } from "@/lib/types";
 
 export type FormState = { error?: string; message?: string } | undefined;
 
@@ -129,14 +128,16 @@ export async function createTemplate(formData: FormData) {
   const profile = await requireAdmin();
   const supabase = await createClient();
 
-  const mode = String(formData.get("mode")) as ExamMode;
+  const category = String(formData.get("category") ?? "mock_exam");
   const timeRaw = String(formData.get("time_limit_minutes") ?? "").trim();
 
+  // Every category is a timed, scored exam (mock engine).
   const { error } = await supabase.from("exam_templates").insert({
     title: String(formData.get("title") ?? "").trim(),
-    mode,
+    mode: "mock",
+    category,
     questions_per_subject: Number(formData.get("questions_per_subject") ?? 5),
-    time_limit_minutes: mode === "mock" && timeRaw ? Number(timeRaw) : null,
+    time_limit_minutes: timeRaw ? Number(timeRaw) : null,
     pass_average: Number(formData.get("pass_average") ?? 75),
     min_subject_score: Number(formData.get("min_subject_score") ?? 50),
     is_published: formData.get("is_published") === "on",
@@ -144,6 +145,8 @@ export async function createTemplate(formData: FormData) {
   });
   if (error) throw new Error(error.message);
   revalidatePath("/admin/exams");
+  revalidatePath("/dashboard");
+  revalidatePath("/practice");
 }
 
 export async function setTemplatePublished(id: string, published: boolean) {

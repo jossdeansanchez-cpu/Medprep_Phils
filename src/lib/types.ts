@@ -41,6 +41,7 @@ export interface ExamTemplate {
   id: string;
   title: string;
   mode: ExamMode;
+  category: import("@/lib/categories").ExamCategory;
   questions_per_subject: number;
   time_limit_minutes: number | null;
   pass_average: number;

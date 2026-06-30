@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { startAttempt } from "@/lib/exam";
 import { getEntitlements, hasAtLeast } from "@/lib/billing/entitlements";
 import UpgradeGate from "@/components/UpgradeGate";
+import { categoryLabel, type ExamCategory } from "@/lib/categories";
 import type { ExamTemplate } from "@/lib/types";
 
 type AttemptRow = {
@@ -14,7 +15,7 @@ type AttemptRow = {
   started_at: string;
   general_average: number | null;
   passed: boolean | null;
-  exam_templates: { title: string; mode: string } | null;
+  exam_templates: { title: string; category: string } | null;
 };
 
 export default async function Dashboard() {
@@ -26,13 +27,13 @@ export default async function Dashboard() {
   const { data: mockTemplates } = await supabase
     .from("exam_templates")
     .select("*")
-    .eq("mode", "mock")
+    .eq("category", "mock_exam")
     .eq("is_published", true)
     .order("created_at", { ascending: false });
 
   const { data: attempts } = await supabase
     .from("exam_attempts")
-    .select("id, status, started_at, general_average, passed, exam_templates(title, mode)")
+    .select("id, status, started_at, general_average, passed, exam_templates(title, category)")
     .order("started_at", { ascending: false });
 
   const { plan } = await getEntitlements();
@@ -169,7 +170,9 @@ export default async function Dashboard() {
                     <td className="py-2.5 font-medium">
                       {a.exam_templates?.title ?? "Exam"}
                       <span className="ml-2 text-xs text-[var(--muted)]">
-                        {a.exam_templates?.mode}
+                        {a.exam_templates?.category
+                          ? categoryLabel(a.exam_templates.category as ExamCategory)
+                          : ""}
                       </span>
                     </td>
                     <td className="py-2.5 text-[var(--muted)]">

@@ -5,6 +5,7 @@ import {
   deleteTemplate,
 } from "@/app/admin/actions";
 import type { ExamTemplate } from "@/lib/types";
+import { CATEGORY_ORDER, CATEGORY_LABELS, categoryLabel } from "@/lib/categories";
 
 export default async function ExamsPage() {
   const supabase = await createClient();
@@ -26,10 +27,13 @@ export default async function ExamsPage() {
           </div>
 
           <div>
-            <label className="label" htmlFor="mode">Mode</label>
-            <select id="mode" name="mode" className="input" defaultValue="mock">
-              <option value="mock">Mock (timed, scored at end)</option>
-              <option value="practice">Practice (untimed, instant feedback)</option>
+            <label className="label" htmlFor="category">Category</label>
+            <select id="category" name="category" className="input" defaultValue="daily_practice">
+              {CATEGORY_ORDER.map((c) => (
+                <option key={c} value={c}>
+                  {CATEGORY_LABELS[c]}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -90,10 +94,11 @@ export default async function ExamsPage() {
             Publish immediately
           </label>
 
-          <button type="submit" className="btn-primary w-full">Create template</button>
+          <button type="submit" className="btn-primary w-full">Create exam</button>
           <p className="text-xs text-[var(--muted)]">
-            Time limit applies to mock exams only. Defaults follow the PLE rule (≥75% average,
-            no subject below 50%).
+            All categories are timed and scored. Leave the time limit blank for an untimed
+            but still-scored set. Defaults follow the PLE rule (75% average, no subject below 50%).
+            Mock exams require a Pro plan; daily and weekly practice are open to all students.
           </p>
         </form>
       </div>
@@ -111,7 +116,9 @@ export default async function ExamsPage() {
                   <div>
                     <p className="font-semibold">
                       {t.title}
-                      <span className="badge ml-2 bg-black/[0.05]">{t.mode}</span>
+                      <span className="badge ml-2 bg-[var(--primary)]/10 text-[var(--primary)]">
+                        {categoryLabel(t.category)}
+                      </span>
                       {t.is_published ? (
                         <span className="badge ml-1 bg-[var(--primary)]/10 text-[var(--primary)]">
                           published
