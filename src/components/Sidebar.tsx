@@ -35,6 +35,16 @@ const items: Item[] = [
     ),
   },
   {
+    href: "/analytics",
+    label: "Analytics",
+    icon: (
+      <svg className={ICON} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M3 3v18h18" />
+        <path d="M7 14l4-4 3 3 5-6" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin",
     label: "Overview",
     adminOnly: true,
