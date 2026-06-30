@@ -4,6 +4,8 @@ import AppShell from "@/components/AppShell";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { startAttempt } from "@/lib/exam";
+import { getEntitlements, hasAtLeast } from "@/lib/billing/entitlements";
+import UpgradeGate from "@/components/UpgradeGate";
 import type { ExamTemplate } from "@/lib/types";
 
 type AttemptRow = {
@@ -32,6 +34,10 @@ export default async function Dashboard() {
     .from("exam_attempts")
     .select("id, status, started_at, general_average, passed, exam_templates(title, mode)")
     .order("started_at", { ascending: false });
+
+  const { plan } = await getEntitlements();
+  const canMock = hasAtLeast(plan, "pro");
+  const canHistory = hasAtLeast(plan, "basic");
 
   const templates = (mockTemplates ?? []) as ExamTemplate[];
   const history = (attempts ?? []) as unknown as AttemptRow[];
@@ -87,11 +93,17 @@ export default async function Dashboard() {
                   </p>
                 </div>
               </div>
-              <form action={startAttempt.bind(null, nextExam.id)}>
-                <button type="submit" className="btn-primary">
-                  Start exam
-                </button>
-              </form>
+              {canMock ? (
+                <form action={startAttempt.bind(null, nextExam.id)}>
+                  <button type="submit" className="btn-primary">
+                    Start exam
+                  </button>
+                </form>
+              ) : (
+                <Link href="/pricing" className="btn-primary whitespace-nowrap">
+                  ✦ Unlock with Pro
+                </Link>
+              )}
             </div>
           ) : (
             <p className="text-sm text-[var(--muted)]">
@@ -132,7 +144,12 @@ export default async function Dashboard() {
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-semibold">Recent attempts</h2>
           </div>
-          {history.length === 0 ? (
+          {!canHistory ? (
+            <UpgradeGate
+              title="Saved history is a Basic feature"
+              body="Upgrade to keep a record of your attempts and scores."
+            />
+          ) : history.length === 0 ? (
             <p className="py-6 text-center text-sm text-[var(--muted)]">No attempts yet.</p>
           ) : (
             <table className="w-full text-left text-sm">
