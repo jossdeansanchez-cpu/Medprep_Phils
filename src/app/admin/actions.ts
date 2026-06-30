@@ -8,6 +8,19 @@ import type { ExamMode } from "@/lib/types";
 
 export type FormState = { error?: string; message?: string } | undefined;
 
+/** Admin: set a student's plan directly (comp, no Stripe). */
+export async function setStudentPlan(userId: string, plan: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("admin_set_plan", {
+    p_user_id: userId,
+    p_plan: plan,
+    p_interval: "month",
+  });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/students");
+}
+
 /** Create a pre-confirmed student account (admin only). */
 export async function createStudent(
   _prev: FormState,

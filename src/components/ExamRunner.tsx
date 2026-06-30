@@ -53,6 +53,7 @@ export default function ExamRunner({
     deadlineMs ? deadlineMs - Date.now() : null
   );
   const [isSubmitting, startSubmit] = useTransition();
+  const [capMessage, setCapMessage] = useState<string | null>(null);
   const submittedRef = useRef(false);
 
   const q = questions[index];
@@ -79,16 +80,31 @@ export default function ExamRunner({
     return () => clearInterval(id);
   }, [deadlineMs, doSubmit]);
 
+  function rollback(id: string) {
+    setAnswers((a) => {
+      const next = { ...a };
+      delete next[id];
+      return next;
+    });
+  }
+
   async function choose(label: OptionLabel) {
     if (!q) return;
+    if (capMessage) return; // free daily cap hit — stop answering
     if (isPractice && reveals[q.attempt_question_id]) return; // locked after reveal
-    setAnswers((a) => ({ ...a, [q.attempt_question_id]: label }));
+    const id = q.attempt_question_id;
+    setAnswers((a) => ({ ...a, [id]: label }));
     try {
-      const res = await saveAnswer(q.attempt_question_id, label);
+      const res = await saveAnswer(id, label);
+      if (res.error) {
+        rollback(id);
+        setCapMessage(res.error);
+        return;
+      }
       if (res.revealed) {
         setReveals((r) => ({
           ...r,
-          [q.attempt_question_id]: {
+          [id]: {
             is_correct: !!res.is_correct,
             correct_label: res.correct_label as OptionLabel,
             explanation: res.explanation ?? null,
@@ -96,12 +112,7 @@ export default function ExamRunner({
         }));
       }
     } catch {
-      // Roll back the optimistic selection on failure.
-      setAnswers((a) => {
-        const next = { ...a };
-        delete next[q.attempt_question_id];
-        return next;
-      });
+      rollback(id);
     }
   }
 
@@ -150,6 +161,15 @@ export default function ExamRunner({
           </div>
         )}
       </div>
+
+      {capMessage && (
+        <div className="mb-4 rounded-2xl border border-[var(--primary)]/40 bg-[var(--primary)]/[0.08] p-4 text-center">
+          <p className="font-semibold">{capMessage}</p>
+          <a href="/pricing" className="btn-primary mt-2 inline-flex">
+            See plans
+          </a>
+        </div>
+      )}
 
       {/* Question palette */}
       <div className="mb-4 flex flex-wrap gap-1.5">

@@ -19,6 +19,7 @@ export type SaveAnswerResult = {
   is_correct?: boolean;
   correct_label?: OptionLabel;
   explanation?: string | null;
+  error?: string;
 };
 
 /** Record a selection. In practice mode the response reveals the answer. */
@@ -31,7 +32,9 @@ export async function saveAnswer(
     p_attempt_question_id: attemptQuestionId,
     p_selected: selected,
   });
-  if (error) throw new Error(error.message);
+  // Return the message (not throw) so gates like the free daily cap reach the
+  // client even in production, where Next.js masks thrown server-action errors.
+  if (error) return { revealed: false, error: error.message };
   return data as SaveAnswerResult;
 }
 

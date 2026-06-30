@@ -1,7 +1,8 @@
 import Sidebar from "@/components/Sidebar";
 import type { Profile } from "@/lib/types";
+import { getEntitlements } from "@/lib/billing/entitlements";
 
-export default function AppShell({
+export default async function AppShell({
   profile,
   greeting,
   title,
@@ -12,6 +13,7 @@ export default function AppShell({
   title: string;
   children: React.ReactNode;
 }) {
+  const { plan } = await getEntitlements();
   const initials =
     (profile.full_name || "U")
       .split(" ")
@@ -23,7 +25,7 @@ export default function AppShell({
   return (
     <div className="app-gradient min-h-screen p-4 sm:p-6">
       <div className="glass mx-auto flex max-w-6xl overflow-hidden">
-        <Sidebar role={profile.role} name={profile.full_name} />
+        <Sidebar role={profile.role} name={profile.full_name} plan={plan} />
 
         <main className="min-w-0 flex-1 border-l border-white/50 px-5 py-6 sm:px-8">
           {/* Topbar */}

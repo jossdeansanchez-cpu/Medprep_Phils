@@ -1,11 +1,14 @@
 import { createClient } from "@/lib/supabase/server";
 import StudentForm from "./StudentForm";
+import PlanSelect from "./PlanSelect";
+import type { PlanTier } from "@/lib/billing/plans";
 
 type StudentRow = {
   id: string;
   full_name: string | null;
   email: string;
   role: string;
+  plan: PlanTier;
   created_at: string;
 };
 
@@ -38,6 +41,7 @@ export default async function StudentsPage() {
                 <tr>
                   <th className="px-4 py-3 font-medium">Name</th>
                   <th className="px-4 py-3 font-medium">Email</th>
+                  <th className="px-4 py-3 font-medium">Plan</th>
                   <th className="px-4 py-3 font-medium">Joined</th>
                 </tr>
               </thead>
@@ -46,6 +50,9 @@ export default async function StudentsPage() {
                   <tr key={s.id} className="border-t border-white/50">
                     <td className="px-4 py-2.5 font-medium">{s.full_name || "—"}</td>
                     <td className="px-4 py-2.5 text-[var(--muted)]">{s.email}</td>
+                    <td className="px-4 py-2.5">
+                      <PlanSelect userId={s.id} plan={s.plan} />
+                    </td>
                     <td className="px-4 py-2.5 text-[var(--muted)]">
                       {new Date(s.created_at).toLocaleDateString()}
                     </td>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/app/auth/actions";
 import type { Role } from "@/lib/types";
+import { planLabel, type PlanTier } from "@/lib/billing/plans";
 
 type Item = { href: string; label: string; icon: React.ReactNode; adminOnly?: boolean; exact?: boolean };
 
@@ -30,6 +31,16 @@ const items: Item[] = [
       <svg className={ICON} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M4 5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
         <path d="M13 3v5h5" />
+      </svg>
+    ),
+  },
+  {
+    href: "/analytics",
+    label: "Analytics",
+    icon: (
+      <svg className={ICON} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M3 3v18h18" />
+        <path d="M7 14l4-4 3 3 5-6" />
       </svg>
     ),
   },
@@ -94,12 +105,15 @@ const items: Item[] = [
 export default function Sidebar({
   role,
   name,
+  plan = "free",
 }: {
   role: Role;
   name: string | null;
+  plan?: PlanTier;
 }) {
   const pathname = usePathname();
   const visible = items.filter((i) => !i.adminOnly || role === "admin");
+  const showUpgrade = plan === "free" || plan === "basic";
 
   return (
     <aside className="flex w-60 shrink-0 flex-col px-4 py-6">
@@ -135,12 +149,26 @@ export default function Sidebar({
       </nav>
 
       <div className="mt-6 border-t border-white/50 pt-4">
-        <div className="mb-3 px-2 text-xs text-[var(--muted)]">
-          {name || "Account"}
+        <Link
+          href="/account"
+          className="mb-2 flex items-center gap-2 px-2 text-xs text-[var(--muted)] hover:text-[var(--foreground)]"
+        >
+          <span>{name || "Account"}</span>
+          <span className="badge bg-[var(--primary)]/10 text-[var(--primary)]">
+            {planLabel(plan)}
+          </span>
           {role === "admin" && (
-            <span className="badge ml-2 bg-[var(--primary)]/15 text-[var(--primary)]">admin</span>
+            <span className="badge bg-black/[0.06]">admin</span>
           )}
-        </div>
+        </Link>
+        {showUpgrade && (
+          <Link
+            href="/pricing"
+            className="mb-2 flex items-center gap-3 rounded-xl bg-[var(--primary)]/10 px-3 py-2 text-sm font-medium text-[var(--primary)] hover:bg-[var(--primary)]/15"
+          >
+            ✦ Upgrade plan
+          </Link>
+        )}
         <form action={signOut}>
           <button
             type="submit"
