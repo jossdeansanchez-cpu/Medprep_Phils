@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
 import { validateRows, type RawRow, type ValidQuestion } from "@/lib/csv";
 import type { ExamMode } from "@/lib/types";
@@ -19,6 +20,32 @@ export async function setStudentPlan(userId: string, plan: string) {
   });
   if (error) throw new Error(error.message);
   revalidatePath("/admin/students");
+}
+
+/**
+ * Permanently remove a student account (admin only). Cascades to their profile,
+ * attempts, and subscription. Refuses to delete non-student accounts (admins).
+ */
+export async function deleteStudent(
+  userId: string
+): Promise<{ ok?: boolean; error?: string }> {
+  await requireAdmin();
+  const admin = createAdminClient();
+
+  // Guard: only students can be removed here, never an admin.
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
+  if (!profile) return { error: "Account not found." };
+  if (profile.role !== "student") return { error: "Only students can be removed." };
+
+  const { error } = await admin.auth.admin.deleteUser(userId);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/students");
+  return { ok: true };
 }
 
 /** Create a pre-confirmed student account (admin only). */

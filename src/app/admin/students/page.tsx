@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import StudentForm from "./StudentForm";
 import PlanSelect from "./PlanSelect";
+import RemoveStudent from "./RemoveStudent";
 import type { PlanTier } from "@/lib/billing/plans";
 
 type StudentRow = {
@@ -9,8 +10,40 @@ type StudentRow = {
   email: string;
   role: string;
   plan: PlanTier;
+  status: string;
+  is_paid: boolean;
+  current_period_end: string | null;
   created_at: string;
 };
+
+function SubStatus({ s }: { s: StudentRow }) {
+  const active = s.status === "active" || s.status === "trialing";
+  if (!active) {
+    const label =
+      s.status === "canceled"
+        ? "Canceled"
+        : s.status === "past_due"
+          ? "Past due"
+          : "Free";
+    const tone =
+      s.status === "past_due"
+        ? "bg-amber-100 text-amber-700"
+        : "bg-black/[0.06] text-[var(--muted)]";
+    return <span className={`badge ${tone}`}>{label}</span>;
+  }
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1.5">
+      <span className="badge whitespace-nowrap bg-[var(--primary)]/10 text-[var(--primary)]">
+        {s.is_paid ? "Active · Stripe" : "Active · manual"}
+      </span>
+      {s.is_paid && s.current_period_end && (
+        <span className="text-xs text-[var(--muted)]">
+          renews {new Date(s.current_period_end).toLocaleDateString()}
+        </span>
+      )}
+    </span>
+  );
+}
 
 export default async function StudentsPage() {
   const supabase = await createClient();
@@ -19,12 +52,12 @@ export default async function StudentsPage() {
   const students = users.filter((u) => u.role === "student");
 
   return (
-    <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
-      <div>
+    <div className="space-y-8">
+      <div className="max-w-md">
         <StudentForm />
         <p className="mt-3 text-xs text-[var(--muted)]">
-          Accounts created here are confirmed immediately — no email verification needed,
-          so your students can log in straight away.
+          Accounts created here are confirmed immediately, so your students can sign in
+          straight away with no email verification.
         </p>
       </div>
 
@@ -35,26 +68,35 @@ export default async function StudentsPage() {
         {students.length === 0 ? (
           <div className="glass p-5 text-sm text-[var(--muted)]">No students yet.</div>
         ) : (
-          <div className="glass overflow-hidden p-0">
+          <div className="glass overflow-x-auto p-0">
             <table className="w-full text-left text-sm">
               <thead className="text-xs uppercase tracking-wide text-[var(--muted)]">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Name</th>
-                  <th className="px-4 py-3 font-medium">Email</th>
+                  <th className="px-4 py-3 font-medium">Student</th>
                   <th className="px-4 py-3 font-medium">Plan</th>
+                  <th className="px-4 py-3 font-medium">Subscription</th>
                   <th className="px-4 py-3 font-medium">Joined</th>
+                  <th className="px-4 py-3 text-right font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {students.map((s) => (
-                  <tr key={s.id} className="border-t border-white/50">
-                    <td className="px-4 py-2.5 font-medium">{s.full_name || "—"}</td>
-                    <td className="px-4 py-2.5 text-[var(--muted)]">{s.email}</td>
-                    <td className="px-4 py-2.5">
+                  <tr key={s.id} className="border-t border-white/50 align-top">
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{s.full_name || "Unnamed"}</div>
+                      <div className="text-xs text-[var(--muted)]">{s.email}</div>
+                    </td>
+                    <td className="px-4 py-3">
                       <PlanSelect userId={s.id} plan={s.plan} />
                     </td>
-                    <td className="px-4 py-2.5 text-[var(--muted)]">
+                    <td className="px-4 py-3">
+                      <SubStatus s={s} />
+                    </td>
+                    <td className="px-4 py-3 text-[var(--muted)]">
                       {new Date(s.created_at).toLocaleDateString()}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      <RemoveStudent userId={s.id} name={s.full_name || s.email} />
                     </td>
                   </tr>
                 ))}
@@ -62,6 +104,10 @@ export default async function StudentsPage() {
             </table>
           </div>
         )}
+        <p className="mt-3 text-xs text-[var(--muted)]">
+          Set a plan to comp access manually. Removing a student permanently deletes their
+          account and all their attempts.
+        </p>
       </div>
     </div>
   );
