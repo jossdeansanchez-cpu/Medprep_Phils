@@ -71,4 +71,23 @@ body {
   .glass-soft {
     @apply rounded-2xl border border-white/40 bg-white/35 backdrop-blur-md;
   }
+
+  /* Landing: soft mint→white field, emerald-forward (no AI-purple) */
+  .hero-field {
+    background:
+      radial-gradient(900px 480px at 12% -8%, #d2ede0 0%, transparent 60%),
+      radial-gradient(760px 520px at 100% 0%, #e7f3ec 0%, transparent 55%),
+      linear-gradient(180deg, #f3f9f5 0%, var(--background) 70%);
+  }
+}
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(18px); }
+  to { opacity: 1; transform: none; }
+}
+.reveal {
+  animation: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .reveal { animation: none; }
 }
