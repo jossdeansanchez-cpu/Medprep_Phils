@@ -25,7 +25,7 @@ export async function getNotifications(): Promise<{ items: Notif[]; unread: numb
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("notifications_seen_at")
+    .select("notifications_seen_at, role")
     .eq("id", user.id)
     .single();
   const seenAt = profile?.notifications_seen_at
@@ -103,6 +103,30 @@ export async function getNotifications(): Promise<{ items: Notif[]; unread: numb
           href: "/account",
         });
       }
+    }
+  }
+
+  // Admins: alert on any student whose payment has failed (subscription past_due).
+  if (profile?.role === "admin") {
+    const { data: pastDue } = await supabase
+      .from("subscriptions")
+      .select("user_id, updated_at, profiles(full_name)")
+      .eq("status", "past_due")
+      .order("updated_at", { ascending: false })
+      .limit(10);
+    for (const s of (pastDue ?? []) as unknown as {
+      user_id: string;
+      updated_at: string;
+      profiles: { full_name: string | null } | null;
+    }[]) {
+      items.push({
+        id: `pastdue-${s.user_id}`,
+        type: "sub",
+        title: "Student payment failed",
+        body: `${s.profiles?.full_name || "A student"} is past due — access may lapse.`,
+        at: s.updated_at,
+        href: "/admin/students",
+      });
     }
   }
 
