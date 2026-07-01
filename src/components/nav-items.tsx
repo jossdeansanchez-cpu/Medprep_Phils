@@ -90,7 +90,7 @@ export const navItems: NavItem[] = [
   },
   {
     href: "/admin/exams",
-    label: "Exams",
+    label: "Manage exams",
     adminOnly: true,
     icon: (
       <svg className={ICON} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
