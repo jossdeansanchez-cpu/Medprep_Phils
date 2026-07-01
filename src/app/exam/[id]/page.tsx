@@ -2,6 +2,8 @@ import { redirect, notFound } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import ExamRunner from "@/components/ExamRunner";
+import DeviceLimitBlock from "@/components/DeviceLimitBlock";
+import { checkDevice } from "@/lib/devices";
 import type { ExamMode, OptionLabel, QuestionOption } from "@/lib/types";
 
 type RpcQuestion = {
@@ -22,6 +24,11 @@ export default async function ExamPage({
 }) {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
+
+  const device = await checkDevice();
+  if (!device.allowed) {
+    return <DeviceLimitBlock maxDevices={device.maxDevices} currentDeviceId={device.deviceId} />;
+  }
 
   const { id } = await params;
   const supabase = await createClient();

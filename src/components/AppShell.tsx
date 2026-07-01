@@ -1,7 +1,9 @@
 import Sidebar from "@/components/Sidebar";
 import MobileNav from "@/components/MobileNav";
+import DeviceLimitBlock from "@/components/DeviceLimitBlock";
 import type { Profile } from "@/lib/types";
 import { getEntitlements } from "@/lib/billing/entitlements";
+import { checkDevice } from "@/lib/devices";
 
 export default async function AppShell({
   profile,
@@ -14,6 +16,11 @@ export default async function AppShell({
   title: string;
   children: React.ReactNode;
 }) {
+  const device = await checkDevice();
+  if (!device.allowed) {
+    return <DeviceLimitBlock maxDevices={device.maxDevices} currentDeviceId={device.deviceId} />;
+  }
+
   const { plan } = await getEntitlements();
   const initials =
     (profile.full_name || "U")

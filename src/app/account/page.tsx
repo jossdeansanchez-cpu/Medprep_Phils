@@ -4,6 +4,8 @@ import AppShell from "@/components/AppShell";
 import { getCurrentProfile } from "@/lib/auth";
 import { getEntitlements } from "@/lib/billing/entitlements";
 import { planLabel } from "@/lib/billing/plans";
+import { listMyDevices, deviceLabel, DEVICE_LIMITS } from "@/lib/devices";
+import { removeDevice } from "./actions";
 import ManageButton from "./ManageButton";
 
 export default async function AccountPage() {
@@ -12,6 +14,8 @@ export default async function AccountPage() {
 
   const ent = await getEntitlements();
   const isPaid = ent.plan !== "free";
+  const devices = await listMyDevices();
+  const maxDevices = profile.role === "admin" ? null : DEVICE_LIMITS[ent.plan];
 
   return (
     <AppShell profile={profile} greeting="Your account" title="Account">
@@ -49,6 +53,51 @@ export default async function AccountPage() {
               View plans
             </Link>
           </div>
+        </section>
+
+        <section className="glass p-6">
+          <div className="flex items-center justify-between">
+            <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Devices</p>
+            <span className="text-xs text-[var(--muted)]">
+              {devices.length}
+              {maxDevices ? ` / ${maxDevices}` : ""} used
+            </span>
+          </div>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            {maxDevices
+              ? `Your ${planLabel(ent.plan)} plan allows ${maxDevices} device${maxDevices === 1 ? "" : "s"}. Remove one to sign in somewhere new.`
+              : "Admins are not device-limited."}
+          </p>
+
+          {devices.length === 0 ? (
+            <p className="mt-4 text-sm text-[var(--muted)]">No devices recorded yet.</p>
+          ) : (
+            <div className="mt-4 divide-y divide-[var(--border)] rounded-xl border border-[var(--border)]">
+              {devices.map((d, i) => {
+                const over = maxDevices != null && i >= maxDevices;
+                return (
+                  <div key={d.device_id} className="flex items-center justify-between gap-3 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium">
+                        {deviceLabel(d.user_agent)}
+                        {over && (
+                          <span className="badge ml-2 bg-amber-100 text-amber-700">over limit</span>
+                        )}
+                      </p>
+                      <p className="text-xs text-[var(--muted)]">
+                        Last used {new Date(d.last_seen).toLocaleString()}
+                      </p>
+                    </div>
+                    <form action={removeDevice.bind(null, d.device_id)}>
+                      <button className="btn-ghost text-xs text-[var(--danger)]" type="submit">
+                        Remove
+                      </button>
+                    </form>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </section>
 
         <section className="glass p-6">
