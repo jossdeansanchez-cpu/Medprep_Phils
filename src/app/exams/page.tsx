@@ -19,9 +19,16 @@ const ICONS: Record<ExamCategory, string> = {
   mock_exam: "🩺",
 };
 
-export default async function ExamsCatalog() {
+export default async function ExamsCatalog({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
+
+  const { q } = await searchParams;
+  const query = (q ?? "").trim();
 
   const supabase = await createClient();
   const { data } = await supabase
@@ -36,6 +43,39 @@ export default async function ExamsCatalog() {
   const templates = (data ?? []) as ExamTemplate[];
   const newest = templates.slice(0, 3);
   const byCategory = (c: ExamCategory) => templates.filter((t) => t.category === c);
+
+  // Search view: flat list of exams whose title (or category) matches the query.
+  if (query) {
+    const ql = query.toLowerCase();
+    const results = templates.filter(
+      (t) =>
+        t.title.toLowerCase().includes(ql) ||
+        CATEGORY_LABELS[t.category].toLowerCase().includes(ql)
+    );
+    return (
+      <AppShell profile={profile} greeting="Search results" title="Exams">
+        <div className="mb-4 flex items-center gap-2 text-sm text-[var(--muted)]">
+          <span>
+            {results.length} result{results.length === 1 ? "" : "s"} for “{query}”
+          </span>
+          <Link href="/exams" className="text-[var(--primary)]">
+            Clear
+          </Link>
+        </div>
+        {results.length === 0 ? (
+          <div className="glass p-5 text-sm text-[var(--muted)]">
+            No exams match “{query}”.
+          </div>
+        ) : (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {results.map((t) => (
+              <ExamCard key={t.id} t={t} canMock={canMock} />
+            ))}
+          </div>
+        )}
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell profile={profile} greeting="Pick an exam to take" title="Exams">

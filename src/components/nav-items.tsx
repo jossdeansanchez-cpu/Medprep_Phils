@@ -100,6 +100,17 @@ export const navItems: NavItem[] = [
     ),
   },
   {
+    href: "/admin/announcements",
+    label: "Announcements",
+    adminOnly: true,
+    icon: (
+      <svg className={ICON} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M3 11l18-5v12L3 14v-3z" />
+        <path d="M11.6 16.8a3 3 0 1 1-5.8-1.6" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin/students",
     label: "Students",
     adminOnly: true,

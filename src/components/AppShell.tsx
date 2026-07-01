@@ -1,9 +1,12 @@
 import Sidebar from "@/components/Sidebar";
 import MobileNav from "@/components/MobileNav";
 import DeviceLimitBlock from "@/components/DeviceLimitBlock";
+import ExamSearch from "@/components/ExamSearch";
+import NotificationBell from "@/components/NotificationBell";
 import type { Profile } from "@/lib/types";
 import { getEntitlements } from "@/lib/billing/entitlements";
 import { checkDevice } from "@/lib/devices";
+import { getNotifications } from "@/lib/notifications";
 
 export default async function AppShell({
   profile,
@@ -22,6 +25,7 @@ export default async function AppShell({
   }
 
   const { plan } = await getEntitlements();
+  const notifications = await getNotifications();
   const initials =
     (profile.full_name || "U")
       .split(" ")
@@ -48,18 +52,8 @@ export default async function AppShell({
                 <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
               </div>
               <div className="hidden items-center gap-3 sm:flex">
-                <button className="grid h-9 w-9 place-items-center rounded-full bg-white/60 text-[var(--muted)] hover:bg-white">
-                  <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="m21 21-4.3-4.3" />
-                  </svg>
-                </button>
-                <button className="grid h-9 w-9 place-items-center rounded-full bg-white/60 text-[var(--muted)] hover:bg-white">
-                  <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-                    <path d="M13.7 21a2 2 0 0 1-3.4 0" />
-                  </svg>
-                </button>
+                <ExamSearch />
+                <NotificationBell items={notifications.items} unread={notifications.unread} />
                 <div className="flex items-center gap-2 rounded-full bg-white/60 py-1 pl-1 pr-3">
                   <div className="grid h-8 w-8 place-items-center rounded-full bg-[var(--primary)] text-xs font-semibold text-white">
                     {initials}

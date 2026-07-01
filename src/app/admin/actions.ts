@@ -126,6 +126,29 @@ export async function deleteQuestion(id: string) {
   revalidatePath("/admin/questions");
 }
 
+export async function createAnnouncement(formData: FormData) {
+  const profile = await requireAdmin();
+  const supabase = await createClient();
+  const title = String(formData.get("title") ?? "").trim();
+  const body = String(formData.get("body") ?? "").trim();
+  if (!title) return;
+  const { error } = await supabase
+    .from("announcements")
+    .insert({ title, body: body || null, created_by: profile.id });
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/announcements");
+  revalidatePath("/", "layout");
+}
+
+export async function deleteAnnouncement(id: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase.from("announcements").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/announcements");
+  revalidatePath("/", "layout");
+}
+
 export async function setQuestionCategory(id: string, category: string) {
   await requireAdmin();
   const supabase = await createClient();
