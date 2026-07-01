@@ -3,6 +3,7 @@ import type Stripe from "stripe";
 import { stripe } from "@/lib/billing/stripe";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { priceToPlan } from "@/lib/billing/plans";
+import { sendEmail, emailLayout, getUserEmail } from "@/lib/email";
 
 // Stripe needs the raw body for signature verification — never parse it first.
 export async function POST(req: NextRequest) {
@@ -54,7 +55,26 @@ export async function POST(req: NextRequest) {
     }
     case "customer.subscription.created":
     case "customer.subscription.updated": {
-      await upsertFromSubscription(event.data.object as Stripe.Subscription);
+      const sub = event.data.object as Stripe.Subscription;
+      await upsertFromSubscription(sub);
+      // Email the student when their payment fails (subscription past_due).
+      const prev = (event.data.previous_attributes ?? {}) as Partial<Stripe.Subscription>;
+      if (sub.status === "past_due" && prev.status && prev.status !== "past_due") {
+        const uid = sub.metadata.user_id as string | undefined;
+        const email = uid ? await getUserEmail(uid) : null;
+        if (email) {
+          const site = process.env.NEXT_PUBLIC_SITE_URL || "https://medprep-teal.vercel.app";
+          await sendEmail({
+            to: email,
+            subject: "⚠️ Your MEDprep payment failed",
+            html: emailLayout({
+              heading: "We couldn't process your payment",
+              body: "Your latest MEDprep subscription payment didn't go through, so your access may be interrupted. Update your payment method to keep your plan active — Stripe will retry automatically.",
+              cta: { label: "Update payment method", href: `${site}/account` },
+            }),
+          });
+        }
+      }
       break;
     }
     case "customer.subscription.deleted": {

@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
 import { validateRows, type RawRow, type ValidQuestion } from "@/lib/csv";
+import { sendEmail, emailLayout, emailConfigured, getStudentEmails } from "@/lib/email";
 
 export type FormState = { error?: string; message?: string } | undefined;
 
@@ -138,6 +139,27 @@ export async function createAnnouncement(formData: FormData) {
   if (error) throw new Error(error.message);
   revalidatePath("/admin/announcements");
   revalidatePath("/", "layout");
+
+  // Also email the announcement to every student (no-op if email not configured).
+  if (emailConfigured()) {
+    try {
+      const recipients = await getStudentEmails();
+      if (recipients.length) {
+        const site = process.env.NEXT_PUBLIC_SITE_URL || "https://medprep-teal.vercel.app";
+        const html = emailLayout({
+          heading: title,
+          body: (body || "").replace(/\n/g, "<br>") || "A new announcement from your MEDprep admin.",
+          cta: { label: "Open MEDprep", href: `${site}/dashboard` },
+        });
+        // Send per-recipient so addresses aren't exposed to each other.
+        await Promise.allSettled(
+          recipients.map((to) => sendEmail({ to, subject: `📣 ${title}`, html }))
+        );
+      }
+    } catch (e) {
+      console.error("[announcement email] failed:", e);
+    }
+  }
 }
 
 export async function deleteAnnouncement(id: string) {
