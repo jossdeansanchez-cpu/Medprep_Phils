@@ -3,6 +3,7 @@ import StudentForm from "./StudentForm";
 import PlanSelect from "./PlanSelect";
 import RemoveStudent from "./RemoveStudent";
 import type { PlanTier } from "@/lib/billing/plans";
+import { DEVICE_LIMITS } from "@/lib/devices";
 
 type StudentRow = {
   id: string;
@@ -13,8 +14,26 @@ type StudentRow = {
   status: string;
   is_paid: boolean;
   current_period_end: string | null;
+  device_count: number;
   created_at: string;
 };
+
+function DeviceUsage({ s }: { s: StudentRow }) {
+  const limit = DEVICE_LIMITS[s.plan];
+  const atLimit = s.device_count >= limit;
+  return (
+    <span
+      className={`badge ${
+        atLimit
+          ? "bg-amber-100 text-amber-700"
+          : "bg-black/[0.05] text-[var(--muted)]"
+      }`}
+      title="Active devices used / plan limit"
+    >
+      {s.device_count} / {limit}
+    </span>
+  );
+}
 
 function SubStatus({ s }: { s: StudentRow }) {
   const active = s.status === "active" || s.status === "trialing";
@@ -75,6 +94,7 @@ export default async function StudentsPage() {
                   <th className="px-4 py-3 font-medium">Student</th>
                   <th className="px-4 py-3 font-medium">Plan</th>
                   <th className="px-4 py-3 font-medium">Subscription</th>
+                  <th className="px-4 py-3 font-medium">Devices</th>
                   <th className="px-4 py-3 font-medium">Joined</th>
                   <th className="px-4 py-3 text-right font-medium">Actions</th>
                 </tr>
@@ -91,6 +111,9 @@ export default async function StudentsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <SubStatus s={s} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <DeviceUsage s={s} />
                     </td>
                     <td className="px-4 py-3 text-[var(--muted)]">
                       {new Date(s.created_at).toLocaleDateString()}
