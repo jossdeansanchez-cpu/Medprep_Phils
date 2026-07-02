@@ -1,48 +1,51 @@
 import "server-only";
+import nodemailer from "nodemailer";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 /**
- * Outbound email via Resend (https://resend.com). SERVER-ONLY.
+ * Outbound email over SMTP (nodemailer). SERVER-ONLY.
+ *
+ * Works with any SMTP account — the same kind you'd configure in Supabase's
+ * Auth SMTP settings (Gmail, SendGrid, Mailgun, your host, etc.). No domain
+ * required (Gmail with an App Password is the easiest no-domain option).
  *
  * Configuration (Vercel env):
- *   RESEND_API_KEY  — the Resend API key (required to actually send)
- *   EMAIL_FROM      — verified sender, e.g. "MEDprep <alerts@yourdomain.com>"
- *                     Falls back to Resend's shared onboarding address, which can
- *                     ONLY deliver to the Resend account owner until you verify a
- *                     domain. Verify a domain to email real students.
+ *   SMTP_HOST   — e.g. smtp.gmail.com
+ *   SMTP_PORT   — 587 (STARTTLS) or 465 (SSL). Defaults to 587.
+ *   SMTP_USER   — SMTP username (e.g. your Gmail address)
+ *   SMTP_PASS   — SMTP password / app password
+ *   EMAIL_FROM  — sender, e.g. "MEDprep <you@gmail.com>". Defaults to SMTP_USER.
  *
- * If RESEND_API_KEY is unset, every send is a silent no-op so the app keeps
- * working without email configured.
+ * If SMTP isn't configured, every send is a silent no-op so the app keeps
+ * working without email.
  */
 
-const FROM = process.env.EMAIL_FROM || "MEDprep <onboarding@resend.dev>";
+const FROM = process.env.EMAIL_FROM || process.env.SMTP_USER || "MEDprep";
 
 export function emailConfigured(): boolean {
-  return Boolean(process.env.RESEND_API_KEY);
+  return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+}
+
+function getTransport() {
+  const port = Number(process.env.SMTP_PORT || 587);
+  return nodemailer.createTransport({
+    host: process.env.SMTP_HOST,
+    port,
+    secure: port === 465, // SSL on 465; STARTTLS otherwise
+    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+  });
 }
 
 type SendArgs = { to: string | string[]; subject: string; html: string };
 
-/** Send one email. Returns true if handed off to Resend, false if skipped/failed. */
+/** Send one email. Returns true if sent, false if skipped/failed. */
 export async function sendEmail({ to, subject, html }: SendArgs): Promise<boolean> {
-  const key = process.env.RESEND_API_KEY;
-  if (!key) {
-    console.warn("[email] RESEND_API_KEY not set — skipping send:", subject);
+  if (!emailConfigured()) {
+    console.warn("[email] SMTP not configured — skipping send:", subject);
     return false;
   }
   try {
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${key}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ from: FROM, to, subject, html }),
-    });
-    if (!res.ok) {
-      console.error("[email] Resend error", res.status, await res.text());
-      return false;
-    }
+    await getTransport().sendMail({ from: FROM, to, subject, html });
     return true;
   } catch (err) {
     console.error("[email] send failed:", err);
