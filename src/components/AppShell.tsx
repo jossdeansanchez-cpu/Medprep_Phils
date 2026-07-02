@@ -65,7 +65,7 @@ export default async function AppShell({
               </div>
             </div>
 
-            {children}
+            <div className="page-in">{children}</div>
           </main>
         </div>
       </div>

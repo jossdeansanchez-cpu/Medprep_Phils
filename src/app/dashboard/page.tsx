@@ -85,7 +85,7 @@ export default async function Dashboard() {
             )}
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {newest.map((t) => (
               <ExamCard key={t.id} t={t} canMock={canMock} />
             ))}
@@ -96,7 +96,7 @@ export default async function Dashboard() {
       {/* Exam statistics */}
       <section className="glass mb-4 p-5">
         <h2 className="mb-4 font-semibold">Exam statistics</h2>
-        <div className="mb-3 flex h-2.5 w-full overflow-hidden rounded-full bg-black/[0.06]">
+        <div className="bar-grow mb-3 flex h-2.5 w-full overflow-hidden rounded-full bg-black/[0.06]">
           <div className="h-full bg-[var(--primary)]" style={{ width: `${seg(passed)}%` }} />
           <div className="h-full bg-amber-400" style={{ width: `${seg(inProgress)}%` }} />
           <div className="h-full bg-[var(--danger)]" style={{ width: `${seg(failed)}%` }} />
@@ -179,7 +179,7 @@ export default async function Dashboard() {
         </section>
 
         <div className="grid gap-4">
-          <div className="grid grid-cols-2 gap-4">
+          <div className="stagger grid grid-cols-2 gap-4">
             <Tile color="violet" label="Pass rate" value={`${passRate}%`} icon="◎" />
             <Tile color="pink" label="Exams taken" value={`${total}`} icon="✎" />
             <Tile color="amber" label="Avg score" value={`${avgScore}`} icon="☆" />

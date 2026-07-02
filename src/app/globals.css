@@ -34,7 +34,7 @@ body {
   .btn-primary,
   .btn-outline,
   .btn-ghost {
-    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2 text-sm font-medium transition-[color,background-color,box-shadow,transform] duration-200 active:scale-[0.97] disabled:opacity-50 disabled:cursor-not-allowed;
   }
   .btn-primary {
     @apply bg-[var(--primary)] text-[var(--primary-foreground)] hover:opacity-90;
@@ -81,13 +81,96 @@ body {
   }
 }
 
+/* ── Motion system ─────────────────────────────────────────────
+   One easing (spring-out), one language. Animates only transform
+   and opacity. Everything collapses under prefers-reduced-motion. */
+
 @keyframes fade-up {
   from { opacity: 0; transform: translateY(18px); }
   to { opacity: 1; transform: none; }
 }
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.95) translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes grow-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* Hero / marketing reveal (existing) */
 .reveal {
   animation: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
 }
+
+/* Route-change enter: applied to page content by AppShell */
+.page-in {
+  animation: page-enter 0.45s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Staggered child entrance for card grids and lists */
+.stagger > * {
+  animation: fade-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.stagger > *:nth-child(1) { animation-delay: 0.04s; }
+.stagger > *:nth-child(2) { animation-delay: 0.1s; }
+.stagger > *:nth-child(3) { animation-delay: 0.16s; }
+.stagger > *:nth-child(4) { animation-delay: 0.22s; }
+.stagger > *:nth-child(5) { animation-delay: 0.28s; }
+.stagger > *:nth-child(6) { animation-delay: 0.34s; }
+.stagger > *:nth-child(n + 7) { animation-delay: 0.4s; }
+
+/* Hover physics for interactive cards */
+.lift {
+  transition:
+    transform 0.3s cubic-bezier(0.16, 1, 0.3, 1),
+    box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 18px 44px rgba(20, 40, 40, 0.12);
+}
+
+/* Dropdown / popover entrance (anchor top-right) */
+.pop-in {
+  transform-origin: top right;
+  animation: pop-in 0.22s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Progress bars grow in from the left on load */
+.bar-grow {
+  transform-origin: left;
+  animation: grow-x 0.9s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: 0.15s;
+}
+
+/* Landing sections fade up as they scroll into view.
+   CSS scroll-driven animation: progressive enhancement, zero JS —
+   browsers without support simply show the section. */
+@supports (animation-timeline: view()) {
+  .scroll-reveal {
+    animation: fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-timeline: view();
+    animation-range: entry 0% entry 50%;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .reveal { animation: none; }
+  .reveal,
+  .page-in,
+  .stagger > *,
+  .pop-in,
+  .bar-grow,
+  .scroll-reveal {
+    animation: none;
+  }
+  .lift,
+  .lift:hover {
+    transform: none;
+    transition: none;
+  }
 }

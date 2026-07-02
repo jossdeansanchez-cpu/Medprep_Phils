@@ -21,7 +21,7 @@ export default function ExamSearch() {
       <button
         aria-label="Search exams"
         onClick={() => setOpen(true)}
-        className="grid h-9 w-9 place-items-center rounded-full bg-white/60 text-[var(--muted)] hover:bg-white"
+        className="grid h-9 w-9 place-items-center rounded-full bg-white/60 text-[var(--muted)] transition-colors duration-200 hover:bg-white"
       >
         <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="11" cy="11" r="7" />
@@ -32,7 +32,7 @@ export default function ExamSearch() {
   }
 
   return (
-    <form onSubmit={submit} className="flex items-center gap-1 rounded-full bg-white/80 pl-3 pr-1 shadow-sm">
+    <form onSubmit={submit} className="pop-in flex items-center gap-1 rounded-full bg-white/80 pl-3 pr-1 shadow-sm">
       <svg className="h-4 w-4 text-[var(--muted)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <circle cx="11" cy="11" r="7" />
         <path d="m21 21-4.3-4.3" />

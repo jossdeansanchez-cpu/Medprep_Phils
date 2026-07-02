@@ -67,7 +67,7 @@ export default async function ExamsCatalog({
             No exams match “{query}”.
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {results.map((t) => (
               <ExamCard key={t.id} t={t} canMock={canMock} />
             ))}
@@ -96,7 +96,7 @@ export default async function ExamsCatalog({
           {/* Recently added */}
           <section>
             <h2 className="mb-3 text-lg font-semibold">Recently added</h2>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {newest.map((t) => (
                 <ExamCard key={t.id} t={t} canMock={canMock} />
               ))}
@@ -120,7 +120,7 @@ export default async function ExamsCatalog({
                 {items.length === 0 ? (
                   <p className="glass p-4 text-sm text-[var(--muted)]">No exams here yet.</p>
                 ) : (
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {items.map((t) => (
                       <ExamCard key={t.id} t={t} canMock={canMock} />
                     ))}

@@ -91,7 +91,7 @@ export default async function Home() {
 
       {/* Fact strip */}
       <section className="border-y border-black/[0.06] bg-white">
-        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-px overflow-hidden px-4 sm:px-6 md:grid-cols-4">
+        <div className="scroll-reveal mx-auto grid max-w-6xl grid-cols-2 gap-px overflow-hidden px-4 sm:px-6 md:grid-cols-4">
           {FACTS.map((f) => (
             <div key={f.label} className="px-2 py-7 text-center md:py-9">
               <div className="font-mono text-3xl font-bold tracking-tight md:text-4xl">{f.n}</div>
@@ -107,7 +107,7 @@ export default async function Home() {
           Two ways to prepare, both built for the boards.
         </h2>
 
-        <div className="mt-14 grid items-center gap-10 lg:grid-cols-2">
+        <div className="scroll-reveal mt-14 grid items-center gap-10 lg:grid-cols-2">
           <div>
             <h3 className="text-2xl font-semibold tracking-tight">
               Mock exams that mirror the real thing.
@@ -131,7 +131,7 @@ export default async function Home() {
           </div>
         </div>
 
-        <div className="mt-16 grid items-center gap-10 lg:grid-cols-2">
+        <div className="scroll-reveal mt-16 grid items-center gap-10 lg:grid-cols-2">
           <div className="order-2 rounded-2xl border border-black/[0.06] bg-white p-2 shadow-[0_20px_50px_-24px_rgba(20,40,40,0.25)] lg:order-1">
             <Image
               src="/shots/dashboard.png"
@@ -158,7 +158,7 @@ export default async function Home() {
 
       {/* Subjects - grid (new layout family) */}
       <section className="border-t border-black/[0.06] bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-24">
+        <div className="scroll-reveal mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-24">
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
             <h2 className="max-w-md text-3xl font-bold tracking-tight sm:text-4xl">
               Every subject on the exam.
@@ -185,7 +185,7 @@ export default async function Home() {
 
       {/* Scoring band - full-width statement (new family) */}
       <section className="bg-[var(--primary)] text-white">
-        <div className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
+        <div className="scroll-reveal mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
           <p className="text-sm font-medium uppercase tracking-wide text-white/70">
             Scored like the real boards
           </p>
@@ -198,7 +198,7 @@ export default async function Home() {
 
       {/* Pricing teaser (new family) */}
       <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
-        <div className="flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-center">
+        <div className="scroll-reveal flex flex-col items-start justify-between gap-8 lg:flex-row lg:items-center">
           <div>
             <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
               Start free. Upgrade when you&apos;re ready.
@@ -237,7 +237,7 @@ export default async function Home() {
 
       {/* Final CTA */}
       <section className="border-t border-black/[0.06] bg-white">
-        <div className="mx-auto max-w-6xl px-4 py-20 text-center sm:px-6">
+        <div className="scroll-reveal mx-auto max-w-6xl px-4 py-20 text-center sm:px-6">
           <h2 className="mx-auto max-w-xl text-3xl font-bold tracking-tight sm:text-4xl">
             Ready to start studying?
           </h2>

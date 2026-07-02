@@ -40,10 +40,10 @@ export default function Sidebar({
             <Link
               key={item.href}
               href={item.href}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors ${
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-[color,background-color,transform] duration-200 ${
                 active
                   ? "bg-[var(--primary)] text-white shadow-sm"
-                  : "text-[var(--muted)] hover:bg-white/50 hover:text-[var(--foreground)]"
+                  : "text-[var(--muted)] hover:translate-x-0.5 hover:bg-white/50 hover:text-[var(--foreground)]"
               }`}
             >
               {item.icon}

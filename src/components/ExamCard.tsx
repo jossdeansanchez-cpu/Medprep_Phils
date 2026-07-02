@@ -11,7 +11,7 @@ export function isRecent(createdAt: string): boolean {
 export default function ExamCard({ t, canMock }: { t: ExamTemplate; canMock: boolean }) {
   const locked = t.category === "mock_exam" && !canMock;
   return (
-    <div className="glass flex flex-col justify-between gap-3 p-5">
+    <div className="glass lift flex flex-col justify-between gap-3 p-5">
       <div>
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <span className="badge bg-[var(--primary)]/10 text-[var(--primary)]">

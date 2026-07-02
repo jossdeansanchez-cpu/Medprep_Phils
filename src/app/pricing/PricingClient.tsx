@@ -47,14 +47,14 @@ export default function PricingClient({
 
         {error && <p className="mb-4 text-center text-sm text-[var(--danger)]">{error}</p>}
 
-        <div className="grid gap-5 md:grid-cols-3">
+        <div className="stagger grid gap-5 md:grid-cols-3">
           {PLANS.map((p) => {
             const price = p.monthly;
             const isCurrent = currentPlan === p.tier;
             return (
               <div
                 key={p.tier}
-                className={`glass flex flex-col p-6 ${
+                className={`glass lift flex flex-col p-6 ${
                   p.highlighted ? "ring-2 ring-[var(--primary)]" : ""
                 }`}
               >

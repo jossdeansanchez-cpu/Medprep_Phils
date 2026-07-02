@@ -34,7 +34,7 @@ export default function NotificationBell({
       <button
         aria-label="Notifications"
         onClick={toggle}
-        className="relative grid h-9 w-9 place-items-center rounded-full bg-white/60 text-[var(--muted)] hover:bg-white"
+        className="relative grid h-9 w-9 place-items-center rounded-full bg-white/60 text-[var(--muted)] transition-colors duration-200 hover:bg-white"
       >
         <svg className="h-[18px] w-[18px]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -50,7 +50,7 @@ export default function NotificationBell({
       {open && (
         <>
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} aria-hidden />
-          <div className="absolute right-0 z-50 mt-2 w-80 max-w-[85vw] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-xl">
+          <div className="pop-in absolute right-0 z-50 mt-2 w-80 max-w-[85vw] overflow-hidden rounded-2xl border border-[var(--border)] bg-[var(--card)] shadow-xl">
             <div className="border-b border-[var(--border)] px-4 py-3">
               <p className="font-semibold">Notifications</p>
             </div>
