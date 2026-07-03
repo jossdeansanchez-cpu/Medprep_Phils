@@ -137,6 +137,9 @@ export default async function QuestionsPage({
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <QuestionCategory id={q.id} category={q.category} />
+                <Link href={`/admin/questions/${q.id}/edit`} className="btn-ghost text-xs">
+                  Edit
+                </Link>
                 <form action={setQuestionActive.bind(null, q.id, !q.is_active)}>
                   <button className="btn-ghost text-xs" type="submit">
                     {q.is_active ? "Deactivate" : "Activate"}

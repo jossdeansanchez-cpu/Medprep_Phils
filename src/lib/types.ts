@@ -28,6 +28,7 @@ export interface Subject {
 export interface Question {
   id: string;
   subject_id: string;
+  category: import("@/lib/categories").ExamCategory;
   stem: string;
   options: QuestionOption[];
   correct_label: OptionLabel;

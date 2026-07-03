@@ -7,6 +7,8 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
 import { validateRows, type RawRow, type ValidQuestion } from "@/lib/csv";
 import { sendEmail, emailLayout, emailConfigured, getStudentEmails } from "@/lib/email";
+import { CATEGORY_ORDER, type ExamCategory } from "@/lib/categories";
+import type { OptionLabel, QuestionOption } from "@/lib/types";
 
 export type FormState = { error?: string; message?: string } | undefined;
 
@@ -125,6 +127,63 @@ export async function deleteQuestion(id: string) {
   const { error } = await supabase.from("questions").delete().eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/admin/questions");
+}
+
+const OPTION_LABELS: OptionLabel[] = ["A", "B", "C", "D", "E"];
+
+/**
+ * Edit an existing question in place (subject, exam type, stem, options,
+ * correct answer, explanation) so a fix no longer requires deleting and
+ * re-uploading via CSV.
+ */
+export async function updateQuestion(
+  id: string,
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const subject_id = String(formData.get("subject_id") ?? "").trim();
+  const category = String(formData.get("category") ?? "").trim();
+  const stem = String(formData.get("stem") ?? "").trim();
+  const explanation = String(formData.get("explanation") ?? "").trim();
+  const correct = String(formData.get("correct") ?? "").trim().toUpperCase();
+
+  if (!subject_id) return { error: "Choose a subject." };
+  if (!stem) return { error: "The question stem is required." };
+  if (!(CATEGORY_ORDER as string[]).includes(category)) {
+    return { error: "Choose a valid exam type (daily, weekly, or mock)." };
+  }
+
+  const options: QuestionOption[] = OPTION_LABELS.map((label) => ({
+    label,
+    text: String(formData.get(`option_${label.toLowerCase()}`) ?? "").trim(),
+  })).filter((o) => o.text);
+  if (options.length < 2) return { error: "At least 2 options are required." };
+  if (!OPTION_LABELS.includes(correct as OptionLabel)) {
+    return { error: "Correct answer must be A–E." };
+  }
+  if (!options.some((o) => o.label === correct)) {
+    return { error: `Correct answer ${correct} has no matching option text.` };
+  }
+
+  const { error } = await supabase
+    .from("questions")
+    .update({
+      subject_id,
+      category: category as ExamCategory,
+      stem,
+      options,
+      correct_label: correct,
+      explanation: explanation || null,
+    })
+    .eq("id", id);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/questions");
+  revalidatePath(`/admin/questions/${id}/edit`);
+  return { message: "Question updated." };
 }
 
 export async function createAnnouncement(formData: FormData) {
