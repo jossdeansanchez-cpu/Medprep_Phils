@@ -19,13 +19,19 @@ export default async function AppShell({
   title: string;
   children: React.ReactNode;
 }) {
-  const device = await checkDevice();
+  // All independent DB round trips fire together instead of one at a time —
+  // this was the main source of the per-click lag between pages.
+  const entPromise = getEntitlements();
+  const [device, ent, notifications] = await Promise.all([
+    checkDevice(),
+    entPromise,
+    getNotifications(entPromise),
+  ]);
   if (!device.allowed) {
     return <DeviceLimitBlock maxDevices={device.maxDevices} currentDeviceId={device.deviceId} />;
   }
 
-  const { plan } = await getEntitlements();
-  const notifications = await getNotifications();
+  const { plan } = ent;
   const initials =
     (profile.full_name || "U")
       .split(" ")

@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { getEntitlements } from "@/lib/billing/entitlements";
+import type { getEntitlements } from "@/lib/billing/entitlements";
 import { categoryLabel, type ExamCategory } from "@/lib/categories";
 
 export type NotifType = "announcement" | "exam" | "sub";
@@ -15,44 +15,55 @@ export type Notif = {
 
 const DAY = 24 * 60 * 60 * 1000;
 
-/** Build the current user's notification feed + unread count. */
-export async function getNotifications(): Promise<{ items: Notif[]; unread: number }> {
+/**
+ * Build the current user's notification feed + unread count.
+ * Takes the (in-flight) entitlements call so it runs concurrently with this
+ * function's own queries instead of waiting on it first — only the final
+ * "expiring soon" check needs the resolved value. See perf note in AppShell.
+ */
+export async function getNotifications(
+  entPromise: ReturnType<typeof getEntitlements>
+): Promise<{ items: Notif[]; unread: number }> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { items: [], unread: 0 };
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("notifications_seen_at, role")
-    .eq("id", user.id)
-    .single();
+  const since = new Date(Date.now() - 14 * DAY).toISOString();
+
+  // Independent reads — fire together instead of one round trip at a time.
+  const [{ data: profile }, { data: anns }, { data: exams }, { data: sub }] = await Promise.all([
+    supabase.from("profiles").select("notifications_seen_at, role").eq("id", user.id).single(),
+    supabase
+      .from("announcements")
+      .select("id, title, body, created_at")
+      .order("created_at", { ascending: false })
+      .limit(10),
+    supabase
+      .from("exam_templates")
+      .select("id, title, category, created_at")
+      .eq("is_published", true)
+      .gte("created_at", since)
+      .order("created_at", { ascending: false })
+      .limit(6),
+    supabase
+      .from("subscriptions")
+      .select("status, current_period_end, updated_at")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+  ]);
+
   const seenAt = profile?.notifications_seen_at
     ? new Date(profile.notifications_seen_at).getTime()
     : 0;
 
   const items: Notif[] = [];
 
-  // Admin announcements
-  const { data: anns } = await supabase
-    .from("announcements")
-    .select("id, title, body, created_at")
-    .order("created_at", { ascending: false })
-    .limit(10);
   for (const a of anns ?? []) {
     items.push({ id: `ann-${a.id}`, type: "announcement", title: a.title, body: a.body, at: a.created_at });
   }
 
-  // Newly added exams (published, last 14 days)
-  const since = new Date(Date.now() - 14 * DAY).toISOString();
-  const { data: exams } = await supabase
-    .from("exam_templates")
-    .select("id, title, category, created_at")
-    .eq("is_published", true)
-    .gte("created_at", since)
-    .order("created_at", { ascending: false })
-    .limit(6);
   for (const e of exams ?? []) {
     items.push({
       id: `exam-${e.id}`,
@@ -64,13 +75,6 @@ export async function getNotifications(): Promise<{ items: Notif[]; unread: numb
     });
   }
 
-  // Subscription state (expiring / expired / payment issue)
-  const { data: sub } = await supabase
-    .from("subscriptions")
-    .select("status, current_period_end, updated_at")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  const ent = await getEntitlements();
   if (sub) {
     if (sub.status === "past_due") {
       items.push({
@@ -90,7 +94,7 @@ export async function getNotifications(): Promise<{ items: Notif[]; unread: numb
         at: sub.updated_at,
         href: "/pricing",
       });
-    } else if (ent.entitled && sub.current_period_end) {
+    } else if ((await entPromise).entitled && sub.current_period_end) {
       const end = new Date(sub.current_period_end).getTime();
       const daysLeft = (end - Date.now()) / DAY;
       if (daysLeft <= 7) {
