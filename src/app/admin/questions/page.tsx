@@ -16,6 +16,7 @@ type QRow = {
   correct_label: string;
   is_active: boolean;
   category: ExamCategory;
+  created_at: string;
   subjects: { name: string } | null;
 };
 
@@ -49,7 +50,7 @@ export default async function QuestionsPage({
 
   let query = supabase
     .from("questions")
-    .select("id, stem, options, correct_label, is_active, category, subjects(name)")
+    .select("id, stem, options, correct_label, is_active, category, created_at, subjects(name)")
     .order("created_at", { ascending: false })
     .limit(300);
   if (activeSubject) query = query.eq("subject_id", activeSubject.id);
@@ -128,7 +129,12 @@ export default async function QuestionsPage({
             <div key={q.id} className="flex items-start gap-3 px-4 py-3">
               <div className="min-w-0 flex-1">
                 <p className="text-xs text-[var(--muted)]">
-                  {q.subjects?.name} · answer {q.correct_label}
+                  {q.subjects?.name} · answer {q.correct_label} · uploaded{" "}
+                  {new Date(q.created_at).toLocaleDateString(undefined, {
+                    year: "numeric",
+                    month: "short",
+                    day: "numeric",
+                  })}
                   {!q.is_active && (
                     <span className="badge ml-2 bg-black/[0.06]">inactive</span>
                   )}

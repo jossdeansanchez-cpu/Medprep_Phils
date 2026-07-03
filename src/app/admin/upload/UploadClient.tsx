@@ -1,10 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { Fragment, useState, useTransition } from "react";
 import Papa from "papaparse";
 import * as XLSX from "xlsx";
 import { CSV_HEADERS, validateRows, type RawRow, type ValidationResult } from "@/lib/csv";
-import { importQuestions } from "@/app/admin/actions";
+import {
+  importQuestions,
+  checkDuplicateQuestions,
+  type DuplicateMatch,
+} from "@/app/admin/actions";
 import { CATEGORY_LABELS } from "@/lib/categories";
 import type { Subject } from "@/lib/types";
 
@@ -22,12 +26,27 @@ export default function UploadClient({ subjects }: { subjects: Subject[] }) {
   const [parseError, setParseError] = useState<string | null>(null);
   const [done, setDone] = useState<{ inserted: number; skipped: number; error?: string } | null>(null);
   const [isImporting, startImport] = useTransition();
+  const [duplicates, setDuplicates] = useState<Record<number, DuplicateMatch[]>>({});
+  const [checkingDuplicates, startDupCheck] = useTransition();
 
   function ingest(parsed: RawRow[]) {
     setParseError(null);
     setDone(null);
     setRows(parsed);
-    setResult(validateRows(parsed, subjects));
+    setDuplicates({});
+    const validated = validateRows(parsed, subjects);
+    setResult(validated);
+
+    if (validated.valid.length > 0) {
+      startDupCheck(async () => {
+        const warnings = await checkDuplicateQuestions(
+          validated.valid.map((q, i) => ({ rowIndex: i, subjectId: q.subject_id, stem: q.stem }))
+        );
+        const byRow: Record<number, DuplicateMatch[]> = {};
+        for (const w of warnings) byRow[w.rowIndex] = w.matches;
+        setDuplicates(byRow);
+      });
+    }
   }
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
@@ -127,6 +146,16 @@ export default function UploadClient({ subjects }: { subjects: Subject[] }) {
             <span className="badge bg-[var(--danger)]/10 text-[var(--danger)]">
               {result.errors.length} with errors
             </span>
+            {checkingDuplicates ? (
+              <span className="text-sm text-[var(--muted)]">Checking for duplicates…</span>
+            ) : (
+              Object.keys(duplicates).length > 0 && (
+                <span className="badge bg-amber-100 text-amber-700">
+                  {Object.keys(duplicates).length} possible duplicate
+                  {Object.keys(duplicates).length === 1 ? "" : "s"}
+                </span>
+              )
+            )}
             <span className="text-sm text-[var(--muted)]">{result.total} total rows</span>
             <button
               onClick={commit}
@@ -167,17 +196,36 @@ export default function UploadClient({ subjects }: { subjects: Subject[] }) {
                   </tr>
                 </thead>
                 <tbody>
-                  {result.valid.slice(0, 10).map((q, i) => (
-                    <tr key={i} className="border-t border-[var(--border)]">
-                      <td className="py-1.5 pr-3 whitespace-nowrap">{q.subject_name}</td>
-                      <td className="py-1.5 pr-3 whitespace-nowrap">
-                        {CATEGORY_LABELS[q.category]}
-                      </td>
-                      <td className="py-1.5 pr-3">{q.stem.slice(0, 60)}{q.stem.length > 60 ? "…" : ""}</td>
-                      <td className="py-1.5 pr-3">{q.options.length}</td>
-                      <td className="py-1.5 font-medium">{q.correct_label}</td>
-                    </tr>
-                  ))}
+                  {result.valid.slice(0, 10).map((q, i) => {
+                    const matches = duplicates[i];
+                    return (
+                      <Fragment key={i}>
+                        <tr className="border-t border-[var(--border)]">
+                          <td className="py-1.5 pr-3 whitespace-nowrap">{q.subject_name}</td>
+                          <td className="py-1.5 pr-3 whitespace-nowrap">
+                            {CATEGORY_LABELS[q.category]}
+                          </td>
+                          <td className="py-1.5 pr-3">
+                            {q.stem.slice(0, 60)}{q.stem.length > 60 ? "…" : ""}
+                          </td>
+                          <td className="py-1.5 pr-3">{q.options.length}</td>
+                          <td className="py-1.5 font-medium">{q.correct_label}</td>
+                        </tr>
+                        {matches && matches.length > 0 && (
+                          <tr>
+                            <td colSpan={5} className="pb-1.5 pl-1">
+                              <p className="rounded-lg bg-amber-50 px-2 py-1 text-xs text-amber-700">
+                                ⚠ {Math.round(matches[0].similarity * 100)}% similar to an existing
+                                question: “{matches[0].stem.slice(0, 80)}
+                                {matches[0].stem.length > 80 ? "…" : ""}”
+                                {matches.length > 1 ? ` (+${matches.length - 1} more match)` : ""}
+                              </p>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

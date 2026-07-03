@@ -1,8 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
-import { updateQuestion, type FormState } from "@/app/admin/actions";
+import { useActionState, useState, useTransition } from "react";
+import {
+  updateQuestion,
+  checkDuplicateQuestions,
+  type FormState,
+  type DuplicateMatch,
+} from "@/app/admin/actions";
 import { CATEGORY_ORDER, CATEGORY_LABELS } from "@/lib/categories";
 import type { Question, Subject } from "@/lib/types";
 
@@ -20,6 +25,24 @@ export default function QuestionForm({
   const optionText = (label: (typeof OPTION_LABELS)[number]) =>
     question.options.find((o) => o.label === label)?.text ?? "";
 
+  const [subjectId, setSubjectId] = useState(question.subject_id);
+  const [dupMatches, setDupMatches] = useState<DuplicateMatch[]>([]);
+  const [checkingDup, startDupCheck] = useTransition();
+
+  function checkStemForDuplicates(stem: string) {
+    if (!stem.trim()) {
+      setDupMatches([]);
+      return;
+    }
+    startDupCheck(async () => {
+      const warnings = await checkDuplicateQuestions([
+        { rowIndex: 0, subjectId, stem },
+      ]);
+      const matches = (warnings[0]?.matches ?? []).filter((m) => m.id !== question.id);
+      setDupMatches(matches);
+    });
+  }
+
   return (
     <form action={formAction} className="card space-y-4">
       <div className="grid gap-3 sm:grid-cols-2">
@@ -31,6 +54,7 @@ export default function QuestionForm({
             required
             className="input"
             defaultValue={question.subject_id}
+            onChange={(e) => setSubjectId(e.target.value)}
           >
             {subjects.map((s) => (
               <option key={s.id} value={s.id}>{s.name}</option>
@@ -62,7 +86,19 @@ export default function QuestionForm({
           rows={3}
           className="input"
           defaultValue={question.stem}
+          onBlur={(e) => checkStemForDuplicates(e.target.value)}
         />
+        {checkingDup && (
+          <p className="mt-1 text-xs text-[var(--muted)]">Checking for duplicates…</p>
+        )}
+        {!checkingDup && dupMatches.length > 0 && (
+          <p className="mt-1 rounded-lg bg-amber-50 px-2 py-1 text-xs text-amber-700">
+            ⚠ {Math.round(dupMatches[0].similarity * 100)}% similar to an existing question:
+            “{dupMatches[0].stem.slice(0, 100)}
+            {dupMatches[0].stem.length > 100 ? "…" : ""}”
+            {dupMatches.length > 1 ? ` (+${dupMatches.length - 1} more match)` : ""}
+          </p>
+        )}
       </div>
 
       <div className="space-y-2">

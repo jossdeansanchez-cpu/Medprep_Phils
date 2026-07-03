@@ -110,6 +110,44 @@ export async function importQuestions(
   return { inserted: valid.length, skipped: errors.length };
 }
 
+export type DuplicateMatch = { id: string; stem: string; similarity: number };
+export type DuplicateWarning = { rowIndex: number; matches: DuplicateMatch[] };
+
+/**
+ * Flag questions that look like near-duplicates of ones already in the bank
+ * (same subject, similar wording) so the admin is warned before importing —
+ * without blocking the import, since some near-duplicates are legitimate.
+ */
+export async function checkDuplicateQuestions(
+  items: { rowIndex: number; subjectId: string; stem: string }[]
+): Promise<DuplicateWarning[]> {
+  await requireAdmin();
+  if (items.length === 0) return [];
+  const supabase = await createClient();
+
+  const { data, error } = await supabase.rpc("find_similar_questions_batch", {
+    p_subject_ids: items.map((i) => i.subjectId),
+    p_stems: items.map((i) => i.stem),
+    p_threshold: 0.45,
+  });
+  if (error || !data) return [];
+
+  const byRow = new Map<number, DuplicateMatch[]>();
+  for (const row of data as {
+    row_index: number;
+    question_id: string;
+    existing_stem: string;
+    similarity: number;
+  }[]) {
+    const rowIndex = items[row.row_index - 1]?.rowIndex;
+    if (rowIndex === undefined) continue;
+    const list = byRow.get(rowIndex) ?? [];
+    list.push({ id: row.question_id, stem: row.existing_stem, similarity: row.similarity });
+    byRow.set(rowIndex, list);
+  }
+  return Array.from(byRow, ([rowIndex, matches]) => ({ rowIndex, matches }));
+}
+
 export async function setQuestionActive(id: string, isActive: boolean) {
   await requireAdmin();
   const supabase = await createClient();
