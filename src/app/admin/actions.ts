@@ -353,3 +353,130 @@ export async function deleteTemplate(id: string) {
   if (error) throw new Error(error.message);
   revalidatePath("/admin/exams");
 }
+
+export type ExamSlot = {
+  templateId: string;
+  title: string;
+  assigned: number;
+  cap: number;
+  isAssigned: boolean;
+};
+
+/**
+ * Exams this question could be manually pinned into (same exam type, and the
+ * exam either covers all subjects or explicitly includes this question's
+ * subject), with each exam's current slot usage for that subject.
+ */
+export async function getEligibleTemplatesForQuestion(questionId: string): Promise<ExamSlot[]> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { data: question } = await supabase
+    .from("questions")
+    .select("id, subject_id, category")
+    .eq("id", questionId)
+    .single();
+  if (!question) return [];
+
+  const { data: templates } = await supabase
+    .from("exam_templates")
+    .select("id, title, questions_per_subject, subject_ids")
+    .eq("category", question.category);
+
+  const eligible = (templates ?? []).filter(
+    (t) => !t.subject_ids || t.subject_ids.length === 0 || t.subject_ids.includes(question.subject_id)
+  );
+  if (eligible.length === 0) return [];
+
+  const { data: assignments } = await supabase
+    .from("exam_template_questions")
+    .select("template_id, question_id")
+    .in("template_id", eligible.map((t) => t.id))
+    .eq("subject_id", question.subject_id);
+
+  const counts = new Map<string, number>();
+  const mine = new Set<string>();
+  for (const a of assignments ?? []) {
+    counts.set(a.template_id, (counts.get(a.template_id) ?? 0) + 1);
+    if (a.question_id === questionId) mine.add(a.template_id);
+  }
+
+  return eligible.map((t) => ({
+    templateId: t.id,
+    title: t.title,
+    assigned: counts.get(t.id) ?? 0,
+    cap: t.questions_per_subject,
+    isAssigned: mine.has(t.id),
+  }));
+}
+
+/** Pin a question into a specific exam. Rejects if that exam is already full for the subject. */
+export async function assignQuestionToTemplate(
+  questionId: string,
+  templateId: string
+): Promise<{ error?: string; message?: string }> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const { data: question } = await supabase
+    .from("questions")
+    .select("subject_id, category")
+    .eq("id", questionId)
+    .single();
+  if (!question) return { error: "Question not found." };
+
+  const { data: template } = await supabase
+    .from("exam_templates")
+    .select("title, category, questions_per_subject, subject_ids")
+    .eq("id", templateId)
+    .single();
+  if (!template) return { error: "Exam not found." };
+
+  if (template.category !== question.category) {
+    return { error: `This question's type doesn't match "${template.title}"'s type.` };
+  }
+  if (
+    template.subject_ids &&
+    template.subject_ids.length > 0 &&
+    !template.subject_ids.includes(question.subject_id)
+  ) {
+    return { error: `"${template.title}" doesn't include this question's subject.` };
+  }
+
+  const { count } = await supabase
+    .from("exam_template_questions")
+    .select("*", { count: "exact", head: true })
+    .eq("template_id", templateId)
+    .eq("subject_id", question.subject_id);
+
+  if ((count ?? 0) >= template.questions_per_subject) {
+    return {
+      error: `"${template.title}" is already full for this subject (${count}/${template.questions_per_subject} questions).`,
+    };
+  }
+
+  const { error } = await supabase.from("exam_template_questions").insert({
+    template_id: templateId,
+    question_id: questionId,
+    subject_id: question.subject_id,
+  });
+  if (error) {
+    if (error.code === "23505") return { error: "This question is already included in that exam." };
+    return { error: error.message };
+  }
+
+  revalidatePath(`/admin/questions/${questionId}/edit`);
+  return { message: `Added to "${template.title}".` };
+}
+
+export async function removeQuestionFromTemplate(questionId: string, templateId: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("exam_template_questions")
+    .delete()
+    .eq("question_id", questionId)
+    .eq("template_id", templateId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/admin/questions/${questionId}/edit`);
+}
