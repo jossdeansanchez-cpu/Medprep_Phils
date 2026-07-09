@@ -6,11 +6,29 @@ import { getEntitlements } from "@/lib/billing/entitlements";
 import { planLabel } from "@/lib/billing/plans";
 import { listMyDevices, deviceLabel, DEVICE_LIMITS } from "@/lib/devices";
 import { removeDevice } from "./actions";
-import ManageButton from "./ManageButton";
+import { applyPaymentIntentResult } from "@/lib/billing/paymongo-fulfillment";
 
-export default async function AccountPage() {
+export default async function AccountPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ subscribe?: string; intent?: string }>;
+}) {
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login");
+
+  const { subscribe, intent } = await searchParams;
+  let paymentNotice: { kind: "success" | "pending" | "error"; text: string } | null = null;
+  if (subscribe === "success") {
+    paymentNotice = { kind: "success", text: "Payment received — your plan is active." };
+  } else if (subscribe === "return" && intent) {
+    const result = await applyPaymentIntentResult(intent);
+    paymentNotice =
+      result.status === "paid"
+        ? { kind: "success", text: "Payment received — your plan is active." }
+        : result.status === "failed"
+          ? { kind: "error", text: "That payment didn't go through. No charge was made." }
+          : { kind: "pending", text: "Still confirming your payment — this can take a minute." };
+  }
 
   const ent = await getEntitlements();
   const isPaid = ent.plan !== "free";
@@ -20,6 +38,20 @@ export default async function AccountPage() {
   return (
     <AppShell profile={profile} greeting="Your account" title="Account">
       <div className="mx-auto max-w-2xl space-y-4">
+        {paymentNotice && (
+          <div
+            className={`glass p-4 text-sm ${
+              paymentNotice.kind === "success"
+                ? "text-[var(--primary)]"
+                : paymentNotice.kind === "error"
+                  ? "text-[var(--danger)]"
+                  : "text-[var(--muted)]"
+            }`}
+          >
+            {paymentNotice.text}
+          </div>
+        )}
+
         <section className="glass p-6">
           <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Current plan</p>
           <div className="mt-1 flex items-center gap-3">
@@ -36,14 +68,17 @@ export default async function AccountPage() {
           </div>
           {ent.currentPeriodEnd && isPaid && (
             <p className="mt-2 text-sm text-[var(--muted)]">
-              Renews / ends on{" "}
-              {new Date(ent.currentPeriodEnd).toLocaleDateString()}
+              {ent.entitled ? "Access ends" : "Access ended"} on{" "}
+              {new Date(ent.currentPeriodEnd).toLocaleDateString()}. Billing is manual — pay
+              again anytime to extend your plan by a month.
             </p>
           )}
 
           <div className="mt-5 flex gap-3">
             {isPaid ? (
-              <ManageButton />
+              <Link href={`/checkout?plan=${ent.plan}`} className="btn-primary">
+                Renew now
+              </Link>
             ) : (
               <Link href="/pricing" className="btn-primary">
                 Upgrade

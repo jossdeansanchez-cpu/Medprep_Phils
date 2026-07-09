@@ -75,61 +75,32 @@ export async function getNotifications(
     });
   }
 
-  if (sub) {
-    if (sub.status === "past_due") {
-      items.push({
-        id: "sub-pastdue",
-        type: "sub",
-        title: "Payment failed",
-        body: "Update your payment method to keep full access.",
-        at: sub.updated_at,
-        href: "/account",
-      });
-    } else if (sub.status === "canceled") {
-      items.push({
-        id: "sub-canceled",
-        type: "sub",
-        title: "Subscription ended",
-        body: "Resubscribe anytime to unlock mock exams again.",
-        at: sub.updated_at,
-        href: "/pricing",
-      });
-    } else if ((await entPromise).entitled && sub.current_period_end) {
-      const end = new Date(sub.current_period_end).getTime();
+  // Billing is one-time/manual now (no auto-charge subscription object), so
+  // there's no "payment failed" server-side status — just an expiring or
+  // already-lapsed plan based on current_period_end.
+  if (sub?.current_period_end) {
+    const end = new Date(sub.current_period_end).getTime();
+    const entitled = (await entPromise).entitled;
+    if (entitled) {
       const daysLeft = (end - Date.now()) / DAY;
       if (daysLeft <= 7) {
         items.push({
           id: "sub-expiring",
           type: "sub",
-          title: "Subscription expiring soon",
-          body: `Your plan ends on ${new Date(sub.current_period_end).toLocaleDateString()}.`,
+          title: "Plan expiring soon",
+          body: `Your plan ends on ${new Date(sub.current_period_end).toLocaleDateString()}. Renew anytime from your account.`,
           at: new Date(end - 7 * DAY).toISOString(),
           href: "/account",
         });
       }
-    }
-  }
-
-  // Admins: alert on any student whose payment has failed (subscription past_due).
-  if (profile?.role === "admin") {
-    const { data: pastDue } = await supabase
-      .from("subscriptions")
-      .select("user_id, updated_at, profiles(full_name)")
-      .eq("status", "past_due")
-      .order("updated_at", { ascending: false })
-      .limit(10);
-    for (const s of (pastDue ?? []) as unknown as {
-      user_id: string;
-      updated_at: string;
-      profiles: { full_name: string | null } | null;
-    }[]) {
+    } else if (end < Date.now()) {
       items.push({
-        id: `pastdue-${s.user_id}`,
+        id: "sub-expired",
         type: "sub",
-        title: "Student payment failed",
-        body: `${s.profiles?.full_name || "A student"} is past due — access may lapse.`,
-        at: s.updated_at,
-        href: "/admin/students",
+        title: "Plan ended",
+        body: "Renew anytime to unlock mock exams and full access again.",
+        at: sub.updated_at,
+        href: "/account",
       });
     }
   }

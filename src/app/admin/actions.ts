@@ -12,7 +12,7 @@ import type { OptionLabel, QuestionOption } from "@/lib/types";
 
 export type FormState = { error?: string; message?: string } | undefined;
 
-/** Admin: set a student's plan directly (comp, no Stripe). */
+/** Admin: set a student's plan directly (comp, no PayMongo involvement). */
 export async function setStudentPlan(userId: string, plan: string) {
   await requireAdmin();
   const supabase = await createClient();

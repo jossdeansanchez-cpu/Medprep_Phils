@@ -53,7 +53,7 @@ function SubStatus({ s }: { s: StudentRow }) {
   return (
     <span className="inline-flex flex-wrap items-center gap-1.5">
       <span className="badge whitespace-nowrap bg-[var(--primary)]/10 text-[var(--primary)]">
-        {s.is_paid ? "Active · Stripe" : "Active · manual"}
+        {s.is_paid ? "Active · PayMongo" : "Active · manual"}
       </span>
       {s.is_paid && s.current_period_end && (
         <span className="text-xs text-[var(--muted)]">

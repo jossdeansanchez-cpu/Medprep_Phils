@@ -1,4 +1,7 @@
-// Single source of truth for subscription plans and Stripe price mapping.
+// Single source of truth for subscription plans.
+// Billed as one-time PayMongo Payment Intents per period (not an
+// auto-recurring subscription — see src/lib/billing/paymongo.ts) — the
+// peso amount here is all that's needed, no external price/plan IDs.
 
 export type PlanTier = "free" | "basic" | "pro" | "max_pro";
 export type BillingInterval = "month" | "year";
@@ -9,13 +12,6 @@ export const TIER_RANK: Record<PlanTier, number> = {
   basic: 1,
   pro: 2,
   max_pro: 3,
-};
-
-// Test-mode price IDs from the Stripe sandbox (not secret). Monthly only.
-const PRICE_IDS: Record<Exclude<PlanTier, "free">, Partial<Record<BillingInterval, string>>> = {
-  basic: { month: "price_1ToWY6RpyWHwb96O7eNlXy3y" },
-  pro: { month: "price_1ToWY7RpyWHwb96OwE8wWxsQ" },
-  max_pro: { month: "price_1ToWY7RpyWHwb96Ot8jlN9jG" },
 };
 
 export interface PlanDef {
@@ -67,20 +63,8 @@ export const PLANS: PlanDef[] = [
   },
 ];
 
-export function planToPriceId(tier: PlanTier, interval: BillingInterval): string | null {
-  if (tier === "free") return null;
-  return PRICE_IDS[tier]?.[interval] ?? null;
-}
-
-export function priceToPlan(
-  priceId: string
-): { tier: PlanTier; interval: BillingInterval } | null {
-  for (const tier of ["basic", "pro", "max_pro"] as const) {
-    for (const interval of ["month", "year"] as const) {
-      if (PRICE_IDS[tier][interval] === priceId) return { tier, interval };
-    }
-  }
-  return null;
+export function planByTier(tier: PlanTier): PlanDef | undefined {
+  return PLANS.find((p) => p.tier === tier);
 }
 
 export function planLabel(tier: PlanTier): string {

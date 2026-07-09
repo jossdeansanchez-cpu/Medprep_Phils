@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import Link from "next/link";
 import { PLANS, type PlanTier } from "@/lib/billing/plans";
 
@@ -11,27 +10,6 @@ export default function PricingClient({
   signedIn: boolean;
   currentPlan: PlanTier;
 }) {
-  const [loading, setLoading] = useState<PlanTier | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  async function subscribe(plan: PlanTier) {
-    setError(null);
-    setLoading(plan);
-    try {
-      const res = await fetch("/api/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan, interval: "month" }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error ?? "Checkout failed");
-      window.location.href = data.url;
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Something went wrong");
-      setLoading(null);
-    }
-  }
-
   return (
     <main className="app-gradient min-h-screen px-4 py-12">
       <div className="mx-auto max-w-5xl">
@@ -44,8 +22,6 @@ export default function PricingClient({
             Pass the PRC Physician Licensure Exam with focused practice and full mock exams.
           </p>
         </div>
-
-        {error && <p className="mb-4 text-center text-sm text-[var(--danger)]">{error}</p>}
 
         <div className="stagger grid gap-5 md:grid-cols-3">
           {PLANS.map((p) => {
@@ -89,13 +65,9 @@ export default function PricingClient({
                       Current plan
                     </Link>
                   ) : (
-                    <button
-                      onClick={() => subscribe(p.tier)}
-                      disabled={loading !== null}
-                      className="btn-primary w-full"
-                    >
-                      {loading === p.tier ? "Redirecting…" : `Choose ${p.name}`}
-                    </button>
+                    <Link href={`/checkout?plan=${p.tier}`} className="btn-primary w-full">
+                      {`Choose ${p.name}`}
+                    </Link>
                   )}
                 </div>
               </div>

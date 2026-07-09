@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail, emailLayout, emailConfigured, getUserEmail } from "@/lib/email";
 
-// Daily cron (see vercel.json). Emails students whose subscription renews soon.
+// Daily cron (see vercel.json). Emails students whose plan is expiring soon.
+// Billing is manual (one-time payments, no auto-charge) — these reminders are
+// the only nudge to actually pay again, unlike a Stripe-style auto-renewal.
 // Reminders fire when the whole number of days remaining is 7, 3, or 1 — so with
 // a once-daily run each student gets at most those three nudges per period.
 const REMIND_ON = new Set([7, 3, 1]);
@@ -43,12 +45,12 @@ export async function GET(req: NextRequest) {
       to: email,
       subject:
         daysLeft === 1
-          ? "⏳ Your MEDprep plan renews tomorrow"
-          : `⏳ Your MEDprep plan renews in ${daysLeft} days`,
+          ? "⏳ Your MEDprep plan expires tomorrow"
+          : `⏳ Your MEDprep plan expires in ${daysLeft} days`,
       html: emailLayout({
-        heading: "Subscription renewing soon",
-        body: `Your MEDprep plan is set to renew on <strong>${when}</strong>. No action is needed if you'd like to keep your access — this is just a heads-up. You can review or change your plan anytime.`,
-        cta: { label: "Manage subscription", href: `${site}/account` },
+        heading: "Your plan is expiring soon",
+        body: `Your MEDprep plan ends on <strong>${when}</strong>. Billing is manual, so pay again before then to keep your access — it won't renew automatically.`,
+        cta: { label: "Renew now", href: `${site}/account` },
       }),
     });
     if (ok) sent += 1;

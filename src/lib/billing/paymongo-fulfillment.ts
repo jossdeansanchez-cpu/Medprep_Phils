@@ -1,0 +1,75 @@
+import "server-only";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { retrievePaymentIntent, type PMPaymentIntent } from "@/lib/billing/paymongo";
+import { sendEmail, emailLayout, getUserEmail } from "@/lib/email";
+import type { PlanTier } from "@/lib/billing/plans";
+
+const DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Apply a Payment Intent's result to the student's subscription row.
+ * Called from both the webhook (primary path) and the checkout return page
+ * (fallback, in case the webhook is slow or misses) — safe to call twice for
+ * the same intent since it re-derives state from PayMongo each time.
+ */
+export async function applyPaymentIntentResult(intentId: string): Promise<{
+  status: "paid" | "pending" | "failed";
+  plan?: PlanTier;
+}> {
+  const intent = await retrievePaymentIntent(intentId);
+  const metadata = intent.attributes.metadata ?? {};
+  const userId = metadata.user_id;
+  const plan = metadata.plan as PlanTier | undefined;
+  if (!userId || !plan) return { status: "pending" };
+
+  const succeeded = intent.attributes.status === "succeeded";
+  const latestPayment = intent.attributes.payments.at(-1);
+
+  const db = createAdminClient();
+
+  if (succeeded) {
+    const { data: existing } = await db
+      .from("subscriptions")
+      .select("current_period_end")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    const base = existing?.current_period_end
+      ? Math.max(new Date(existing.current_period_end).getTime(), Date.now())
+      : Date.now();
+    const newPeriodEnd = new Date(base + 30 * DAY).toISOString();
+
+    await db.from("subscriptions").upsert({
+      user_id: userId,
+      plan,
+      interval: "month",
+      status: "active",
+      paymongo_last_payment_id: latestPayment?.id ?? intentId,
+      current_period_end: newPeriodEnd,
+      updated_at: new Date().toISOString(),
+    });
+    return { status: "paid", plan };
+  }
+
+  if (intent.attributes.status === "awaiting_payment_method") {
+    // Payment failed and PayMongo reset the intent for another attempt.
+    const email = await getUserEmail(userId);
+    if (email) {
+      const site = process.env.NEXT_PUBLIC_SITE_URL || "https://medprep-teal.vercel.app";
+      await sendEmail({
+        to: email,
+        subject: "⚠️ Your MEDprep payment didn't go through",
+        html: emailLayout({
+          heading: "Payment failed",
+          body: "Your last payment attempt for MEDprep didn't complete. No charge was made — you can try again anytime.",
+          cta: { label: "Try again", href: `${site}/pricing` },
+        }),
+      });
+    }
+    return { status: "failed" };
+  }
+
+  return { status: "pending" };
+}
+
+export type { PMPaymentIntent };
