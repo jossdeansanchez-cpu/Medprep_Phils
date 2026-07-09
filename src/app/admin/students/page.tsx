@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import StudentForm from "./StudentForm";
 import PlanSelect from "./PlanSelect";
 import RemoveStudent from "./RemoveStudent";
+import ResetPassword from "./ResetPassword";
 import type { PlanTier } from "@/lib/billing/plans";
 import { DEVICE_LIMITS } from "@/lib/devices";
 
@@ -118,8 +119,11 @@ export default async function StudentsPage() {
                     <td className="px-4 py-3 text-[var(--muted)]">
                       {new Date(s.created_at).toLocaleDateString()}
                     </td>
-                    <td className="px-4 py-3 text-right">
-                      <RemoveStudent userId={s.id} name={s.full_name || s.email} />
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap items-center justify-end gap-1.5">
+                        <ResetPassword userId={s.id} name={s.full_name || s.email} />
+                        <RemoveStudent userId={s.id} name={s.full_name || s.email} />
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -128,8 +132,10 @@ export default async function StudentsPage() {
           </div>
         )}
         <p className="mt-3 text-xs text-[var(--muted)]">
-          Set a plan to comp access manually. Removing a student permanently deletes their
-          account and all their attempts.
+          Use the <strong>Plan</strong> dropdown to grant a subscription (pick Basic / Pro / Max
+          Pro for free comped access) or cancel one (pick Free). <strong>Reset password</strong>{" "}
+          sets a new temporary password you can share with a student who&apos;s locked out.
+          Removing a student permanently deletes their account and all their attempts.
         </p>
       </div>
     </div>

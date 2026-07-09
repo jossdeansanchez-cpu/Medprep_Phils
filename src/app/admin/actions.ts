@@ -51,6 +51,31 @@ export async function deleteStudent(
   return { ok: true };
 }
 
+/**
+ * Admin: set a new password for a student (for "forgot password" when email
+ * delivery isn't reliable). Refuses to touch non-student accounts.
+ */
+export async function setStudentPassword(
+  userId: string,
+  newPassword: string
+): Promise<{ ok?: boolean; error?: string }> {
+  await requireAdmin();
+  if (newPassword.length < 6) return { error: "Password must be at least 6 characters." };
+
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
+  if (!profile) return { error: "Account not found." };
+  if (profile.role !== "student") return { error: "Only student passwords can be reset here." };
+
+  const { error } = await admin.auth.admin.updateUserById(userId, { password: newPassword });
+  if (error) return { error: error.message };
+  return { ok: true };
+}
+
 /** Create a pre-confirmed student account (admin only). */
 export async function createStudent(
   _prev: FormState,
