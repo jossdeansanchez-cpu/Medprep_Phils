@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { updateTemplate } from "@/app/admin/actions";
 import ExamForm from "../../ExamForm";
 import type { ExamTemplate, Subject } from "@/lib/types";
+import { buildCoverage, type CoverageRow } from "@/lib/exam-availability";
 
 export default async function EditExamPage({
   params,
@@ -13,13 +14,15 @@ export default async function EditExamPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: template }, { data: subjectsData }] = await Promise.all([
+  const [{ data: template }, { data: subjectsData }, { data: coverageRows }] = await Promise.all([
     supabase.from("exam_templates").select("*").eq("id", id).single(),
     supabase.from("subjects").select("*").order("order"),
+    supabase.rpc("admin_question_coverage"),
   ]);
 
   if (!template) notFound();
   const subjects = (subjectsData ?? []) as Subject[];
+  const coverage = buildCoverage((coverageRows ?? []) as CoverageRow[]);
 
   return (
     <div className="mx-auto max-w-xl">
@@ -30,6 +33,7 @@ export default async function EditExamPage({
       <ExamForm
         action={updateTemplate.bind(null, id)}
         subjects={subjects}
+        coverage={coverage}
         template={template as ExamTemplate}
         submitLabel="Save changes"
       />

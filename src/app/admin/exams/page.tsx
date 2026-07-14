@@ -8,15 +8,18 @@ import {
 import ExamForm from "./ExamForm";
 import type { ExamTemplate, Subject } from "@/lib/types";
 import { categoryLabel } from "@/lib/categories";
+import { buildCoverage, type CoverageRow } from "@/lib/exam-availability";
 
 export default async function ExamsPage() {
   const supabase = await createClient();
-  const [{ data }, { data: subjectsData }] = await Promise.all([
+  const [{ data }, { data: subjectsData }, { data: coverageRows }] = await Promise.all([
     supabase.from("exam_templates").select("*").order("created_at", { ascending: false }),
     supabase.from("subjects").select("*").order("order"),
+    supabase.rpc("admin_question_coverage"),
   ]);
   const templates = (data ?? []) as ExamTemplate[];
   const subjects = (subjectsData ?? []) as Subject[];
+  const coverage = buildCoverage((coverageRows ?? []) as CoverageRow[]);
   const subjectName = (id: string) => subjects.find((s) => s.id === id)?.name ?? "subject";
 
   return (
@@ -24,7 +27,12 @@ export default async function ExamsPage() {
       {/* Create form */}
       <div>
         <h1 className="mb-3 text-xl font-semibold">New exam template</h1>
-        <ExamForm action={createTemplate} subjects={subjects} submitLabel="Create exam" />
+        <ExamForm
+          action={createTemplate}
+          subjects={subjects}
+          coverage={coverage}
+          submitLabel="Create exam"
+        />
       </div>
 
       {/* List */}

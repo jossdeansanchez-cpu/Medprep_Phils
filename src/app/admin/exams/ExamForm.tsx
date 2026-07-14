@@ -1,32 +1,77 @@
 "use client";
 
-import { useState } from "react";
-import { CATEGORY_ORDER, CATEGORY_LABELS } from "@/lib/categories";
+import { useMemo, useState } from "react";
+import { CATEGORY_ORDER, CATEGORY_LABELS, type ExamCategory } from "@/lib/categories";
+import { computeAvailability, type Coverage } from "@/lib/exam-availability";
 import type { ExamTemplate, Subject } from "@/lib/types";
 
 /**
  * Shared exam template form for create and edit. `action` is a server action
- * taking FormData. `template` (when editing) pre-fills the fields.
- *
- * An exam can be sized two ways:
- *  - "total"       → one total number of questions for the whole exam
- *  - "per_subject" → a fixed number of questions drawn from each subject
+ * taking FormData. `template` (when editing) pre-fills the fields. `coverage`
+ * is the active-question count per category per subject, used to warn the admin
+ * live when the requested question count exceeds the available pool.
  */
 export default function ExamForm({
   action,
   subjects,
+  coverage,
   template,
   submitLabel,
 }: {
   action: (formData: FormData) => void | Promise<void>;
   subjects: Subject[];
+  coverage: Coverage;
   template?: ExamTemplate;
   submitLabel: string;
 }) {
-  const selected = new Set(template?.subject_ids ?? []);
-  const initialMode: "total" | "per_subject" =
-    template ? (template.total_questions != null ? "total" : "per_subject") : "total";
-  const [countMode, setCountMode] = useState<"total" | "per_subject">(initialMode);
+  const [countMode, setCountMode] = useState<"total" | "per_subject">(
+    template ? (template.total_questions != null ? "total" : "per_subject") : "total"
+  );
+  const [category, setCategory] = useState<ExamCategory>(
+    template?.category ?? "daily_practice"
+  );
+  const [selected, setSelected] = useState<Set<string>>(
+    new Set(template?.subject_ids ?? [])
+  );
+  const [totalQ, setTotalQ] = useState<number>(template?.total_questions ?? 20);
+  const [perSubjectQ, setPerSubjectQ] = useState<number>(
+    template?.questions_per_subject ?? 5
+  );
+
+  function toggleSubject(id: string, checked: boolean) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  }
+
+  // Scope = checked subjects, or ALL subjects when none checked (matches start_attempt).
+  const scopedSubjectIds = useMemo(
+    () => (selected.size > 0 ? [...selected] : subjects.map((s) => s.id)),
+    [selected, subjects]
+  );
+
+  const availability = useMemo(
+    () =>
+      computeAvailability({
+        mode: countMode,
+        category,
+        requested: totalQ,
+        qps: perSubjectQ,
+        scopedSubjectIds,
+        coverage,
+      }),
+    [countMode, category, totalQ, perSubjectQ, scopedSubjectIds, coverage]
+  );
+
+  const catLabel = CATEGORY_LABELS[category].toLowerCase();
+  const subjectName = (id: string) => subjects.find((s) => s.id === id)?.name ?? "subject";
+  const isShort =
+    countMode === "total"
+      ? availability.shortfall > 0
+      : availability.shortSubjects.length > 0;
 
   return (
     <form action={action} className="card space-y-3">
@@ -48,7 +93,8 @@ export default function ExamForm({
           id="category"
           name="category"
           className="input"
-          defaultValue={template?.category ?? "daily_practice"}
+          value={category}
+          onChange={(e) => setCategory(e.target.value as ExamCategory)}
         >
           {CATEGORY_ORDER.map((c) => (
             <option key={c} value={c}>
@@ -81,7 +127,8 @@ export default function ExamForm({
               name="total_questions"
               type="number"
               min={1}
-              defaultValue={template?.total_questions ?? 20}
+              value={totalQ}
+              onChange={(e) => setTotalQ(Number(e.target.value))}
               className="input"
             />
           </div>
@@ -93,12 +140,46 @@ export default function ExamForm({
               name="questions_per_subject"
               type="number"
               min={1}
-              defaultValue={template?.questions_per_subject ?? 5}
+              value={perSubjectQ}
+              onChange={(e) => setPerSubjectQ(Number(e.target.value))}
               className="input"
             />
           </div>
         )}
       </div>
+
+      {/* Live availability against the question pool */}
+      {isShort ? (
+        <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          {countMode === "total" ? (
+            <>
+              ⚠ Only <strong>{availability.available}</strong> {catLabel} question
+              {availability.available === 1 ? "" : "s"} available across the selected
+              subjects — you need <strong>{availability.shortfall} more</strong> for a{" "}
+              {totalQ}-question exam. Add more in the Question Bank, or lower the total.
+            </>
+          ) : (
+            <>
+              ⚠ Some subjects don&apos;t have {perSubjectQ} {catLabel} question
+              {perSubjectQ === 1 ? "" : "s"} yet:
+              <ul className="mt-1 list-disc pl-5">
+                {availability.shortSubjects.map((s) => (
+                  <li key={s.subjectId}>
+                    {subjectName(s.subjectId)} — has {s.have}, needs {s.need} more
+                  </li>
+                ))}
+              </ul>
+              Add more in the Question Bank, or lower the per-subject count.
+            </>
+          )}
+        </div>
+      ) : (
+        <p className="text-xs text-[var(--muted)]">
+          {countMode === "total"
+            ? `${availability.available} ${catLabel} question${availability.available === 1 ? "" : "s"} available across the selected subjects.`
+            : `Every selected subject has at least ${perSubjectQ} ${catLabel} question${perSubjectQ === 1 ? "" : "s"}.`}
+        </p>
+      )}
 
       <div>
         <label className="label" htmlFor="time_limit_minutes">Time limit (min)</label>
@@ -155,7 +236,8 @@ export default function ExamForm({
                 type="checkbox"
                 name="subjects"
                 value={s.id}
-                defaultChecked={selected.has(s.id)}
+                checked={selected.has(s.id)}
+                onChange={(e) => toggleSubject(s.id, e.target.checked)}
               />
               {s.name}
             </label>
