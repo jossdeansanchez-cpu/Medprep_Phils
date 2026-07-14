@@ -52,8 +52,10 @@ export default async function ExamsPage() {
                       )}
                     </p>
                     <p className="mt-1 text-sm text-[var(--muted)]">
-                      {t.questions_per_subject} Q/subject ·{" "}
-                      {t.time_limit_minutes ? `${t.time_limit_minutes} min` : "untimed"} · pass{" "}
+                      {t.total_questions != null
+                        ? `${t.total_questions} Q total`
+                        : `${t.questions_per_subject} Q/subject`}{" "}
+                      · {t.time_limit_minutes ? `${t.time_limit_minutes} min` : "untimed"} · pass{" "}
                       {t.pass_average}% / min {t.min_subject_score}%
                     </p>
                     <p className="mt-1 text-xs text-[var(--muted)]">

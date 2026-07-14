@@ -304,6 +304,29 @@ export async function setQuestionCategory(id: string, category: string) {
   revalidatePath("/admin/questions");
 }
 
+/**
+ * Resolve the two question-count fields from the form. In "total" mode the
+ * exam has one overall count (total_questions); questions_per_subject is kept
+ * as a harmless placeholder since the column is NOT NULL. In "per_subject"
+ * mode total_questions is null and the per-subject count applies.
+ */
+function parseQuestionCount(formData: FormData): {
+  questions_per_subject: number;
+  total_questions: number | null;
+} {
+  const mode = String(formData.get("count_mode") ?? "per_subject");
+  if (mode === "total") {
+    return {
+      total_questions: Math.max(1, Number(formData.get("total_questions") ?? 20)),
+      questions_per_subject: Number(formData.get("questions_per_subject") ?? 5) || 5,
+    };
+  }
+  return {
+    total_questions: null,
+    questions_per_subject: Math.max(1, Number(formData.get("questions_per_subject") ?? 5)),
+  };
+}
+
 export async function createTemplate(formData: FormData) {
   const profile = await requireAdmin();
   const supabase = await createClient();
@@ -311,13 +334,15 @@ export async function createTemplate(formData: FormData) {
   const category = String(formData.get("category") ?? "mock_exam");
   const timeRaw = String(formData.get("time_limit_minutes") ?? "").trim();
   const subjectIds = formData.getAll("subjects").map(String).filter(Boolean);
+  const count = parseQuestionCount(formData);
 
   // Every category is a timed, scored exam (mock engine).
   const { error } = await supabase.from("exam_templates").insert({
     title: String(formData.get("title") ?? "").trim(),
     mode: "mock",
     category,
-    questions_per_subject: Number(formData.get("questions_per_subject") ?? 5),
+    questions_per_subject: count.questions_per_subject,
+    total_questions: count.total_questions,
     time_limit_minutes: timeRaw ? Number(timeRaw) : null,
     pass_average: Number(formData.get("pass_average") ?? 75),
     min_subject_score: Number(formData.get("min_subject_score") ?? 50),
@@ -339,13 +364,15 @@ export async function updateTemplate(id: string, formData: FormData) {
   const category = String(formData.get("category") ?? "mock_exam");
   const timeRaw = String(formData.get("time_limit_minutes") ?? "").trim();
   const subjectIds = formData.getAll("subjects").map(String).filter(Boolean);
+  const count = parseQuestionCount(formData);
 
   const { error } = await supabase
     .from("exam_templates")
     .update({
       title: String(formData.get("title") ?? "").trim(),
       category,
-      questions_per_subject: Number(formData.get("questions_per_subject") ?? 5),
+      questions_per_subject: count.questions_per_subject,
+      total_questions: count.total_questions,
       time_limit_minutes: timeRaw ? Number(timeRaw) : null,
       pass_average: Number(formData.get("pass_average") ?? 75),
       min_subject_score: Number(formData.get("min_subject_score") ?? 50),

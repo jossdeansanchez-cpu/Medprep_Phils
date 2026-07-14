@@ -44,6 +44,7 @@ export interface ExamTemplate {
   mode: ExamMode;
   category: import("@/lib/categories").ExamCategory;
   questions_per_subject: number;
+  total_questions: number | null;
   time_limit_minutes: number | null;
   pass_average: number;
   min_subject_score: number;

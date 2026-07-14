@@ -23,8 +23,10 @@ export default function ExamCard({ t, canMock }: { t: ExamTemplate; canMock: boo
         </div>
         <h3 className="font-semibold">{t.title}</h3>
         <p className="mt-1 text-sm text-[var(--muted)]">
-          {t.questions_per_subject} questions / subject ·{" "}
-          {t.time_limit_minutes ? `${t.time_limit_minutes} min` : "untimed"}
+          {t.total_questions != null
+            ? `${t.total_questions} questions`
+            : `${t.questions_per_subject} questions / subject`}{" "}
+          · {t.time_limit_minutes ? `${t.time_limit_minutes} min` : "untimed"}
         </p>
       </div>
       {locked ? (

@@ -1,9 +1,16 @@
+"use client";
+
+import { useState } from "react";
 import { CATEGORY_ORDER, CATEGORY_LABELS } from "@/lib/categories";
 import type { ExamTemplate, Subject } from "@/lib/types";
 
 /**
  * Shared exam template form for create and edit. `action` is a server action
  * taking FormData. `template` (when editing) pre-fills the fields.
+ *
+ * An exam can be sized two ways:
+ *  - "total"       → one total number of questions for the whole exam
+ *  - "per_subject" → a fixed number of questions drawn from each subject
  */
 export default function ExamForm({
   action,
@@ -17,6 +24,9 @@ export default function ExamForm({
   submitLabel: string;
 }) {
   const selected = new Set(template?.subject_ids ?? []);
+  const initialMode: "total" | "per_subject" =
+    template ? (template.total_questions != null ? "total" : "per_subject") : "total";
+  const [countMode, setCountMode] = useState<"total" | "per_subject">(initialMode);
 
   return (
     <form action={action} className="card space-y-3">
@@ -48,30 +58,59 @@ export default function ExamForm({
         </select>
       </div>
 
+      {/* How many questions this exam contains */}
       <div className="grid grid-cols-2 gap-3">
         <div>
-          <label className="label" htmlFor="questions_per_subject">Questions / subject</label>
-          <input
-            id="questions_per_subject"
-            name="questions_per_subject"
-            type="number"
-            min={1}
-            defaultValue={template?.questions_per_subject ?? 5}
+          <label className="label" htmlFor="count_mode">Number of questions</label>
+          <select
+            id="count_mode"
+            name="count_mode"
             className="input"
-          />
+            value={countMode}
+            onChange={(e) => setCountMode(e.target.value as "total" | "per_subject")}
+          >
+            <option value="total">Total for the exam</option>
+            <option value="per_subject">Per subject</option>
+          </select>
         </div>
-        <div>
-          <label className="label" htmlFor="time_limit_minutes">Time limit (min)</label>
-          <input
-            id="time_limit_minutes"
-            name="time_limit_minutes"
-            type="number"
-            min={1}
-            placeholder="e.g. 60"
-            defaultValue={template?.time_limit_minutes ?? ""}
-            className="input"
-          />
-        </div>
+        {countMode === "total" ? (
+          <div>
+            <label className="label" htmlFor="total_questions">Total questions</label>
+            <input
+              id="total_questions"
+              name="total_questions"
+              type="number"
+              min={1}
+              defaultValue={template?.total_questions ?? 20}
+              className="input"
+            />
+          </div>
+        ) : (
+          <div>
+            <label className="label" htmlFor="questions_per_subject">Questions / subject</label>
+            <input
+              id="questions_per_subject"
+              name="questions_per_subject"
+              type="number"
+              min={1}
+              defaultValue={template?.questions_per_subject ?? 5}
+              className="input"
+            />
+          </div>
+        )}
+      </div>
+
+      <div>
+        <label className="label" htmlFor="time_limit_minutes">Time limit (min)</label>
+        <input
+          id="time_limit_minutes"
+          name="time_limit_minutes"
+          type="number"
+          min={1}
+          placeholder="e.g. 60 — leave blank for untimed"
+          defaultValue={template?.time_limit_minutes ?? ""}
+          className="input"
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -135,9 +174,10 @@ export default function ExamForm({
 
       <button type="submit" className="btn-primary w-full">{submitLabel}</button>
       <p className="text-xs text-[var(--muted)]">
-        All categories are timed and scored. Leave the time limit blank for an untimed but
-        still-scored set. Defaults follow the PLE rule (75% average, no subject below 50%).
-        Mock exams require a Pro plan; daily and weekly practice are open to all students.
+        Choose <strong>Total for the exam</strong> to set one overall question count (drawn
+        across the chosen subjects), or <strong>Per subject</strong> to draw a fixed number from
+        each subject. All categories are timed and scored; leave the time limit blank for
+        untimed. Mock exams require a Pro plan; daily and weekly practice are open to all.
       </p>
     </form>
   );
