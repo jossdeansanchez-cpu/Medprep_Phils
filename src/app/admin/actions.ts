@@ -184,12 +184,37 @@ export async function setQuestionActive(id: string, isActive: boolean) {
   revalidatePath("/admin/questions");
 }
 
-export async function deleteQuestion(id: string) {
+/**
+ * Delete a question. If it has already been served in an exam attempt it can't
+ * be hard-deleted (that would break students' past results, which read the
+ * question via a foreign key), so it's archived (deactivated) instead — removed
+ * from the bank's active pool and future exams while history stays intact.
+ * Unused questions are permanently removed.
+ */
+export async function deleteQuestion(
+  id: string
+): Promise<{ ok?: boolean; archived?: boolean; error?: string }> {
   await requireAdmin();
-  const supabase = await createClient();
-  const { error } = await supabase.from("questions").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+  const admin = createAdminClient();
+
+  // Has this question ever been served in an attempt? (service role: sees all)
+  const { count, error: countError } = await admin
+    .from("attempt_questions")
+    .select("id", { count: "exact", head: true })
+    .eq("question_id", id);
+  if (countError) return { error: countError.message };
+
+  if ((count ?? 0) > 0) {
+    const { error } = await admin.from("questions").update({ is_active: false }).eq("id", id);
+    if (error) return { error: error.message };
+    revalidatePath("/admin/questions");
+    return { ok: true, archived: true };
+  }
+
+  const { error } = await admin.from("questions").delete().eq("id", id);
+  if (error) return { error: error.message };
   revalidatePath("/admin/questions");
+  return { ok: true };
 }
 
 const OPTION_LABELS: OptionLabel[] = ["A", "B", "C", "D", "E"];

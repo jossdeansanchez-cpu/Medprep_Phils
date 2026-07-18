@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { setQuestionActive, deleteQuestion } from "@/app/admin/actions";
+import { setQuestionActive } from "@/app/admin/actions";
 import QuestionCategory from "./QuestionCategory";
+import DeleteQuestion from "./DeleteQuestion";
 import {
   CATEGORY_ORDER,
   CATEGORY_LABELS,
@@ -151,11 +152,7 @@ export default async function QuestionsPage({
                     {q.is_active ? "Deactivate" : "Activate"}
                   </button>
                 </form>
-                <form action={deleteQuestion.bind(null, q.id)}>
-                  <button className="btn-ghost text-xs text-[var(--danger)]" type="submit">
-                    Delete
-                  </button>
-                </form>
+                <DeleteQuestion id={q.id} />
               </div>
             </div>
           ))}
