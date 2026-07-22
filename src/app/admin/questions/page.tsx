@@ -52,6 +52,7 @@ export default async function QuestionsPage({
   let query = supabase
     .from("questions")
     .select("id, stem, options, correct_label, is_active, category, created_at, subjects(name)")
+    .is("deleted_at", null) // hide deleted questions; their row is kept for history
     .order("created_at", { ascending: false })
     .limit(300);
   if (activeSubject) query = query.eq("subject_id", activeSubject.id);

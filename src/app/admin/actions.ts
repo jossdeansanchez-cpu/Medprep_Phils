@@ -205,7 +205,12 @@ export async function deleteQuestion(
   if (countError) return { error: countError.message };
 
   if ((count ?? 0) > 0) {
-    const { error } = await admin.from("questions").update({ is_active: false }).eq("id", id);
+    // Can't hard-delete (FK to past attempts). Mark it deleted so it leaves the
+    // bank view and future exams, while the row stays for historical reviews.
+    const { error } = await admin
+      .from("questions")
+      .update({ is_active: false, deleted_at: new Date().toISOString() })
+      .eq("id", id);
     if (error) return { error: error.message };
     revalidatePath("/admin/questions");
     return { ok: true, archived: true };
