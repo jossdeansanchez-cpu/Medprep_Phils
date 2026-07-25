@@ -176,50 +176,40 @@ export async function checkDuplicateQuestions(
 export async function setQuestionActive(id: string, isActive: boolean) {
   await requireAdmin();
   const supabase = await createClient();
-  const { error } = await supabase
-    .from("questions")
-    .update({ is_active: isActive })
-    .eq("id", id);
+  // Reactivating must also clear the deleted marker, otherwise the two flags
+  // diverge (is_active = true + deleted_at set) and the question would be
+  // hidden from the bank yet still eligible for exams.
+  const patch = isActive
+    ? { is_active: true, deleted_at: null }
+    : { is_active: false };
+  const { error } = await supabase.from("questions").update(patch).eq("id", id);
   if (error) throw new Error(error.message);
   revalidatePath("/admin/questions");
 }
 
 /**
- * Delete a question. If it has already been served in an exam attempt it can't
- * be hard-deleted (that would break students' past results, which read the
- * question via a foreign key), so it's archived (deactivated) instead — removed
- * from the bank's active pool and future exams while history stays intact.
- * Unused questions are permanently removed.
+ * Delete a question everywhere it can still be seen.
+ *
+ * A question already served in an attempt can't be hard-deleted (students' past
+ * results read it through a foreign key), so it's marked deleted instead. Either
+ * way the DB function also strips it out of any exam that is still in progress —
+ * attempt_questions is a snapshot taken at start, so without that step a student
+ * resuming an exam would keep seeing a question the admin already removed.
+ * Submitted attempts are left untouched so history stays accurate.
  */
 export async function deleteQuestion(
   id: string
 ): Promise<{ ok?: boolean; archived?: boolean; error?: string }> {
   await requireAdmin();
-  const admin = createAdminClient();
+  const supabase = await createClient();
 
-  // Has this question ever been served in an attempt? (service role: sees all)
-  const { count, error: countError } = await admin
-    .from("attempt_questions")
-    .select("id", { count: "exact", head: true })
-    .eq("question_id", id);
-  if (countError) return { error: countError.message };
-
-  if ((count ?? 0) > 0) {
-    // Can't hard-delete (FK to past attempts). Mark it deleted so it leaves the
-    // bank view and future exams, while the row stays for historical reviews.
-    const { error } = await admin
-      .from("questions")
-      .update({ is_active: false, deleted_at: new Date().toISOString() })
-      .eq("id", id);
-    if (error) return { error: error.message };
-    revalidatePath("/admin/questions");
-    return { ok: true, archived: true };
-  }
-
-  const { error } = await admin.from("questions").delete().eq("id", id);
+  const { data, error } = await supabase.rpc("admin_delete_question", { p_id: id });
   if (error) return { error: error.message };
+
   revalidatePath("/admin/questions");
-  return { ok: true };
+  revalidatePath("/admin");
+  const result = (data ?? {}) as { ok?: boolean; archived?: boolean };
+  return { ok: true, archived: !!result.archived };
 }
 
 const OPTION_LABELS: OptionLabel[] = ["A", "B", "C", "D", "E"];

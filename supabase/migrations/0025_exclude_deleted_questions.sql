@@ -1,0 +1,7 @@
+-- Defence in depth: the exam engine filtered only on is_active, so a question
+-- whose is_active was flipped back on (without clearing deleted_at) would be
+-- drawn into new exams. start_attempt now adds `and q.deleted_at is null` to all
+-- four question-selecting CTEs (manual + filler, in both the TOTAL and the
+-- PER-SUBJECT branch), and admin_question_coverage excludes deleted questions so
+-- the exam-builder availability warnings only count usable ones.
+-- Full bodies applied via Supabase; see start_attempt / admin_question_coverage.

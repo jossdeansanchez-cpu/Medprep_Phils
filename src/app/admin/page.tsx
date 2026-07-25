@@ -19,8 +19,14 @@ export default async function AdminOverview() {
     { count: templateCount },
     { data: coverageData },
   ] = await Promise.all([
-    supabase.from("questions").select("*", { count: "exact", head: true }),
-    supabase.from("questions").select("*", { count: "exact", head: true }).eq("is_active", true),
+    // Deleted questions are kept only for historical attempt reviews — they
+    // shouldn't be counted as part of the bank.
+    supabase.from("questions").select("*", { count: "exact", head: true }).is("deleted_at", null),
+    supabase
+      .from("questions")
+      .select("*", { count: "exact", head: true })
+      .is("deleted_at", null)
+      .eq("is_active", true),
     supabase.from("exam_templates").select("*", { count: "exact", head: true }),
     supabase.rpc("admin_question_coverage"),
   ]);

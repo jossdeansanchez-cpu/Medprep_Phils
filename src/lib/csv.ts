@@ -50,8 +50,21 @@ export interface ValidationResult {
 
 const LABELS: OptionLabel[] = ["A", "B", "C", "D", "E"];
 
+/**
+ * Question banks scanned out of PDF handouts drag page furniture along with the
+ * text — a page break followed by the review centre's header/footer gets glued
+ * onto whatever field was last on the page (usually the final option), turning
+ * a 3-word answer into a 700-character blob. Cut everything from the first such
+ * marker onward.
+ */
+const BOILERPLATE = /\s*(={2,}\s*PAGE BREAK\s*={2,}|TOPNOTCH MEDICAL BOARD PREP|For inquiries visit)[\s\S]*$/i;
+
+export function stripBoilerplate(s: string): string {
+  return s.replace(BOILERPLATE, "").trim();
+}
+
 function norm(s: string | undefined): string {
-  return (s ?? "").trim();
+  return stripBoilerplate((s ?? "").trim());
 }
 
 /** Validate parsed rows against the known subject list. Pure — runs anywhere. */
