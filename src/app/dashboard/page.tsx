@@ -27,6 +27,7 @@ export default async function Dashboard() {
   const { data: publishedTemplates } = await supabase
     .from("exam_templates")
     .select("*")
+    .is("deleted_at", null)
     .eq("is_published", true)
     .order("created_at", { ascending: false });
 

@@ -1,11 +1,8 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import {
-  createTemplate,
-  setTemplatePublished,
-  deleteTemplate,
-} from "@/app/admin/actions";
+import { createTemplate, setTemplatePublished } from "@/app/admin/actions";
 import ExamForm from "./ExamForm";
+import DeleteExam from "./DeleteExam";
 import type { ExamTemplate, Subject } from "@/lib/types";
 import { categoryLabel } from "@/lib/categories";
 import { buildCoverage, type CoverageRow } from "@/lib/exam-availability";
@@ -13,7 +10,11 @@ import { buildCoverage, type CoverageRow } from "@/lib/exam-availability";
 export default async function ExamsPage() {
   const supabase = await createClient();
   const [{ data }, { data: subjectsData }, { data: coverageRows }] = await Promise.all([
-    supabase.from("exam_templates").select("*").order("created_at", { ascending: false }),
+    supabase
+      .from("exam_templates")
+      .select("*")
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false }),
     supabase.from("subjects").select("*").order("order"),
     supabase.rpc("admin_question_coverage"),
   ]);
@@ -84,11 +85,7 @@ export default async function ExamsPage() {
                       {t.is_published ? "Unpublish" : "Publish"}
                     </button>
                   </form>
-                  <form action={deleteTemplate.bind(null, t.id)}>
-                    <button className="btn-ghost text-xs text-[var(--danger)]" type="submit">
-                      Delete
-                    </button>
-                  </form>
+                  <DeleteExam id={t.id} title={t.title} />
                 </div>
               </div>
             ))}

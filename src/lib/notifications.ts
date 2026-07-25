@@ -43,6 +43,7 @@ export async function getNotifications(
     supabase
       .from("exam_templates")
       .select("id, title, category, created_at")
+      .is("deleted_at", null)
       .eq("is_published", true)
       .gte("created_at", since)
       .order("created_at", { ascending: false })

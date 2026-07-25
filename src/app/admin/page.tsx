@@ -27,7 +27,10 @@ export default async function AdminOverview() {
       .select("*", { count: "exact", head: true })
       .is("deleted_at", null)
       .eq("is_active", true),
-    supabase.from("exam_templates").select("*", { count: "exact", head: true }),
+    supabase
+      .from("exam_templates")
+      .select("*", { count: "exact", head: true })
+      .is("deleted_at", null),
     supabase.rpc("admin_question_coverage"),
   ]);
 

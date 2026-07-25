@@ -34,6 +34,7 @@ export default async function ExamsCatalog({
   const { data } = await supabase
     .from("exam_templates")
     .select("*")
+    .is("deleted_at", null)
     .eq("is_published", true)
     .order("created_at", { ascending: false });
 

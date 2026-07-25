@@ -418,12 +418,28 @@ export async function setTemplatePublished(id: string, published: boolean) {
   revalidatePath("/admin/exams");
 }
 
-export async function deleteTemplate(id: string) {
+/**
+ * Delete an exam. If students have already submitted results for it the row
+ * can't be removed (their results page reads the title through a foreign key),
+ * so it's marked deleted instead — gone from the admin list, the catalog and the
+ * dashboard, while past results stay readable. Unfinished attempts of a deleted
+ * exam are discarded, since there's no longer an exam to continue.
+ */
+export async function deleteTemplate(
+  id: string
+): Promise<{ ok?: boolean; archived?: boolean; error?: string }> {
   await requireAdmin();
   const supabase = await createClient();
-  const { error } = await supabase.from("exam_templates").delete().eq("id", id);
-  if (error) throw new Error(error.message);
+
+  const { data, error } = await supabase.rpc("admin_delete_template", { p_id: id });
+  if (error) return { error: error.message };
+
   revalidatePath("/admin/exams");
+  revalidatePath("/exams");
+  revalidatePath("/dashboard");
+  revalidatePath("/admin");
+  const result = (data ?? {}) as { archived?: boolean };
+  return { ok: true, archived: !!result.archived };
 }
 
 export type ExamSlot = {
