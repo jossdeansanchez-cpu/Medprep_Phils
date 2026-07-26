@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { createPaymentIntent, PayMongoError } from "@/lib/billing/paymongo";
+import { createPaymentIntent, safePaymentMessage } from "@/lib/billing/paymongo";
 import { planByTier, type PlanTier } from "@/lib/billing/plans";
 
 export async function POST(req: NextRequest) {
@@ -26,7 +26,6 @@ export async function POST(req: NextRequest) {
       amount: intent.attributes.amount,
     });
   } catch (err) {
-    const message = err instanceof PayMongoError ? err.message : "Could not start payment";
-    return NextResponse.json({ error: message }, { status: 400 });
+    return NextResponse.json({ error: safePaymentMessage(err) }, { status: 400 });
   }
 }

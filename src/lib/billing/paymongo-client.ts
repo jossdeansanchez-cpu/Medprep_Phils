@@ -21,7 +21,24 @@ async function pmClientFetch(path: string, body: unknown) {
     body: JSON.stringify(body),
   });
   const json = await res.json();
-  if (!res.ok) throw new Error(json?.errors?.[0]?.detail ?? "Payment could not be started");
+  if (!res.ok) {
+    const detail = json?.errors?.[0]?.detail as string | undefined;
+    // Same rule as the server: never show the customer an error caused by our
+    // own configuration (rotated/invalid public key, account not enabled) —
+    // those quote the API key and link to developer docs. Card declines and
+    // other actionable payment errors are passed through as-is.
+    const isConfig =
+      res.status === 401 ||
+      res.status === 403 ||
+      /api key|does not exist|authentication|not enabled|unauthorized/i.test(detail ?? "");
+    if (isConfig) {
+      console.error("[paymongo] CONFIG ERROR:", res.status, detail);
+      throw new Error(
+        "Payments are temporarily unavailable. Please try again shortly — if it keeps happening, contact support."
+      );
+    }
+    throw new Error(detail ?? "Payment could not be started");
+  }
   return json;
 }
 

@@ -29,6 +29,37 @@ export class PayMongoError extends Error {
   }
 }
 
+/**
+ * Turn a PayMongo failure into something safe to show a student.
+ *
+ * Errors caused by OUR configuration (bad/rotated API key, account not
+ * enabled) must never reach the customer — PayMongo's text for those quotes the
+ * API key and links to developer docs, which is confusing and looks broken. We
+ * log those for the operator and show a neutral message instead. Genuine
+ * payment problems (declined card, insufficient funds) ARE shown, since the
+ * student can act on them.
+ */
+export function safePaymentMessage(err: unknown): string {
+  const GENERIC =
+    "Payments are temporarily unavailable. Please try again shortly — if it keeps happening, contact support.";
+  if (!(err instanceof PayMongoError)) {
+    console.error("[paymongo] unexpected error:", err);
+    return GENERIC;
+  }
+  const looksLikeConfig =
+    err.status === 401 ||
+    err.status === 403 ||
+    /api key|does not exist|authentication|not enabled|unauthorized/i.test(err.message);
+  if (looksLikeConfig) {
+    // Operator-facing: shows up in Vercel logs so the cause is findable.
+    console.error(
+      `[paymongo] CONFIG ERROR (${err.status}${err.code ? ` ${err.code}` : ""}): ${err.message}`
+    );
+    return GENERIC;
+  }
+  return err.message;
+}
+
 async function pmFetch<T>(
   path: string,
   init?: { method?: string; body?: unknown }
