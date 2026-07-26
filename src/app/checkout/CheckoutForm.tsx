@@ -11,6 +11,28 @@ import {
 
 type Method = "card" | "gcash" | "qrph";
 
+const METHOD_LABELS: Record<Method, string> = {
+  gcash: "GCash",
+  qrph: "QR Ph",
+  card: "Card",
+};
+
+/**
+ * Which methods to offer. PayMongo rejects a method that isn't activated on the
+ * merchant account ("gcash payment method is not allowed"), which would dead-end
+ * the student, so only advertise what's actually enabled. Override without a code
+ * change via NEXT_PUBLIC_PAYMONGO_METHODS (e.g. "qrph,card,gcash") once PayMongo
+ * approves more methods.
+ */
+const ENABLED_METHODS: Method[] = (() => {
+  const raw = process.env.NEXT_PUBLIC_PAYMONGO_METHODS;
+  const parsed = (raw ?? "qrph,card")
+    .split(",")
+    .map((s) => s.trim())
+    .filter((s): s is Method => s === "card" || s === "gcash" || s === "qrph");
+  return parsed.length > 0 ? parsed : ["qrph", "card"];
+})();
+
 export default function CheckoutForm({
   plan,
   email,
@@ -21,7 +43,7 @@ export default function CheckoutForm({
   name: string;
 }) {
   const router = useRouter();
-  const [method, setMethod] = useState<Method>("gcash");
+  const [method, setMethod] = useState<Method>(ENABLED_METHODS[0]);
   const [form, setForm] = useState({ number: "", expMonth: "", expYear: "", cvc: "", name });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -130,8 +152,11 @@ export default function CheckoutForm({
 
   return (
     <form onSubmit={submit} className="mt-5 space-y-4">
-      <div className="grid grid-cols-3 gap-2">
-        {(["gcash", "qrph", "card"] as Method[]).map((m) => (
+      <div
+        className="grid gap-2"
+        style={{ gridTemplateColumns: `repeat(${ENABLED_METHODS.length}, minmax(0, 1fr))` }}
+      >
+        {ENABLED_METHODS.map((m) => (
           <button
             key={m}
             type="button"
@@ -142,7 +167,7 @@ export default function CheckoutForm({
                 : "border-[var(--border)]"
             }`}
           >
-            {m === "gcash" ? "GCash" : m === "qrph" ? "QR Ph" : "Card"}
+            {METHOD_LABELS[m]}
           </button>
         ))}
       </div>

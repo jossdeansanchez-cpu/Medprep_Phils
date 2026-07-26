@@ -34,7 +34,7 @@ export default async function CheckoutPage({
             <span className="text-base font-normal text-[var(--muted)]">/mo</span>
           </h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            One month of access via GCash, QR Ph, or card. No auto-charge — you renew each month.
+            One month of access. No auto-charge — you renew each month.
           </p>
 
           {testMode && (
