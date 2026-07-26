@@ -28,7 +28,7 @@ export const PLANS: PlanDef[] = [
     tier: "basic",
     name: "Basic",
     blurb: "Unlimited practice",
-    monthly: 350,
+    monthly: 499,
     features: [
       "Unlimited study mode",
       "All 12 PLE subjects",
@@ -40,7 +40,7 @@ export const PLANS: PlanDef[] = [
     tier: "pro",
     name: "Pro",
     blurb: "Exam ready",
-    monthly: 499,
+    monthly: 699,
     highlighted: true,
     features: [
       "Everything in Basic",
@@ -53,7 +53,7 @@ export const PLANS: PlanDef[] = [
     tier: "max_pro",
     name: "Max Pro",
     blurb: "Track your progress",
-    monthly: 700,
+    monthly: 799,
     features: [
       "Everything in Pro",
       "Analytics dashboard",
