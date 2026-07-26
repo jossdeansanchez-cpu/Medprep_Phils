@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>You're offline — MEDprep</title>
+    <style>
+      :root { --primary: #0d7a5f; --bg: #f7f8fa; --fg: #15181d; --muted: #687078; }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0; min-height: 100dvh; display: grid; place-items: center;
+        padding: 24px calc(24px + env(safe-area-inset-right)) 24px calc(24px + env(safe-area-inset-left));
+        background: var(--bg); color: var(--fg);
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        text-align: center;
+      }
+      .mark {
+        width: 56px; height: 56px; border-radius: 14px; background: var(--primary);
+        color: #fff; display: grid; place-items: center; margin: 0 auto 18px;
+        font-size: 26px; font-weight: 700;
+      }
+      h1 { font-size: 20px; margin: 0 0 8px; }
+      p { color: var(--muted); margin: 0 0 20px; line-height: 1.55; max-width: 34ch; }
+      button {
+        background: var(--primary); color: #fff; border: 0; border-radius: 10px;
+        padding: 11px 20px; font-size: 15px; font-weight: 600; cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <div>
+      <div class="mark">M</div>
+      <h1>You're offline</h1>
+      <p>
+        MEDprep needs an internet connection to load your exams and save your answers.
+        Reconnect and try again.
+      </p>
+      <button onclick="location.reload()">Try again</button>
+    </div>
+  </body>
+</html>

@@ -24,7 +24,10 @@
 .DS_Store
 *.pem
 .playwright-mcp/
+# Keep stray screenshots out of the repo, but app assets under public/ must be
+# committed — otherwise icons/images exist only on whoever deployed last.
 *.png
+!public/**/*.png
 
 # debug
 npm-debug.log*

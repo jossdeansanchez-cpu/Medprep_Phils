@@ -41,7 +41,7 @@ export default async function AppShell({
       .toUpperCase();
 
   return (
-    <div className="app-gradient min-h-screen p-2 sm:p-6">
+    <div className="app-gradient safe-area min-h-[100dvh] p-2 sm:p-6">
       <div className="glass mx-auto max-w-6xl overflow-hidden lg:flex">
         <Sidebar role={profile.role} name={profile.full_name} plan={plan} />
 

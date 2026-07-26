@@ -72,6 +72,15 @@ body {
     @apply rounded-2xl border border-white/40 bg-white/35 backdrop-blur-md;
   }
 
+  /* Installed (standalone) PWA draws under the notch and home indicator —
+     viewportFit: "cover" in layout.tsx — so keep content inside the safe area. */
+  .safe-area {
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+    padding-left: max(0.5rem, env(safe-area-inset-left));
+    padding-right: max(0.5rem, env(safe-area-inset-right));
+  }
+
   /* Landing: soft mint→white field, emerald-forward (no AI-purple) */
   .hero-field {
     background:
