@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { saveAnswer, submitAttempt } from "@/lib/exam";
 import type { ExamMode, OptionLabel, QuestionOption } from "@/lib/types";
 
@@ -55,7 +56,11 @@ export default function ExamRunner({
   const [isSubmitting, startSubmit] = useTransition();
   const [capMessage, setCapMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [confirmExit, setConfirmExit] = useState(false);
   const submittedRef = useRef(false);
+  const paletteToggleRef = useRef<HTMLButtonElement>(null);
+  const router = useRouter();
 
   const q = questions[index];
   const answeredCount = Object.keys(answers).length;
@@ -159,29 +164,95 @@ export default function ExamRunner({
     );
   }
 
+  // Timer ran out (typically while the student was away — the clock is
+  // wall-clock and doesn't pause). The countdown effect auto-submits; explain
+  // that instead of silently bouncing them to the results page.
+  if (deadlineMs != null && remaining != null && remaining <= 0) {
+    return (
+      <main className="app-gradient grid min-h-[100dvh] place-items-center px-4">
+        <div className="glass max-w-sm p-6 text-center">
+          <p className="font-semibold">Time&apos;s up</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            {submitError
+              ? "The clock ran out, but we couldn't submit your answers."
+              : "The clock ran out. Submitting your answers…"}
+          </p>
+          {submitError && (
+            <button onClick={doSubmit} disabled={isSubmitting} className="btn-primary mt-3">
+              {isSubmitting ? "Submitting…" : "Try again"}
+            </button>
+          )}
+        </div>
+      </main>
+    );
+  }
+
   return (
     <main className="app-gradient min-h-screen px-4 py-6">
       <div className="mx-auto max-w-3xl">
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h1 className="font-semibold">{title}</h1>
+      {/* Header: exit · title · timer */}
+      <div className="mb-3 flex items-center gap-3">
+        <button
+          type="button"
+          onClick={() => setConfirmExit((v) => !v)}
+          aria-label="Save and exit exam"
+          aria-expanded={confirmExit}
+          className="btn-ghost -ml-2 h-11 min-w-11 shrink-0 px-2 text-sm"
+        >
+          <span aria-hidden="true">←</span>
+          <span className="hidden sm:inline">Exit</span>
+        </button>
+
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate font-semibold leading-tight">{title}</h1>
           <p className="text-xs text-[var(--muted)]">
             {isPractice ? "Study mode" : "Mock exam"} · {answeredCount}/{questions.length} answered
           </p>
         </div>
+
         {remaining != null && (
           <div
-            className={`rounded-lg px-3 py-1.5 font-mono text-sm font-medium ${
-              lowTime
-                ? "bg-[var(--danger)]/10 text-[var(--danger)]"
-                : "bg-black/[0.04]"
+            // Don't let a screen reader announce every tick; the label carries
+            // a coarse, human-friendly reading instead.
+            aria-live="off"
+            aria-label={`Time remaining: ${Math.max(0, Math.ceil(remaining / 60000))} minutes`}
+            className={`shrink-0 rounded-lg px-3 py-1.5 font-mono text-sm font-medium tabular-nums ${
+              lowTime ? "bg-[var(--danger)]/10 text-[var(--danger)]" : "bg-black/[0.04]"
             }`}
           >
             {formatTime(remaining)}
           </div>
         )}
       </div>
+
+      {/* Exit confirmation — answers are already saved on every tap, so leaving
+          is just navigation. Timed exams keep counting down while away. */}
+      {confirmExit && (
+        <div className="glass pop-in mb-4 p-4">
+          <p className="text-sm font-medium">Leave this exam?</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            {deadlineMs != null
+              ? "Your answers are saved and you can resume from the dashboard — but the timer keeps running while you're away."
+              : "Your answers are saved. You can resume anytime from the dashboard."}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => router.push("/dashboard")}
+              className="btn-primary text-sm"
+            >
+              Save &amp; exit
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirmExit(false)}
+              className="btn-outline text-sm"
+            >
+              Keep going
+            </button>
+          </div>
+        </div>
+      )}
 
       {capMessage && (
         <div className="mb-4 rounded-2xl border border-[var(--primary)]/40 bg-[var(--primary)]/[0.08] p-4 text-center">
@@ -192,29 +263,75 @@ export default function ExamRunner({
         </div>
       )}
 
-      {/* Question palette */}
-      <div className="mb-4 flex flex-wrap gap-1.5">
-        {palette.map((p) => (
+      {/* Progress — collapsed by default so the question stays above the fold.
+          The full grid is one tap away via "Jump to". */}
+      <div className="mb-4">
+        <div className="mb-1.5 flex items-baseline justify-between gap-3">
+          <p className="text-sm font-medium">
+            Question {index + 1}{" "}
+            <span className="font-normal text-[var(--muted)]">of {questions.length}</span>
+          </p>
           <button
-            key={p.i}
-            onClick={() => setIndex(p.i)}
-            className={`h-7 w-7 rounded text-xs font-medium transition-colors ${
-              p.i === index
-                ? "ring-2 ring-[var(--primary)] ring-offset-1"
-                : ""
-            } ${
-              p.correct === true
-                ? "bg-[var(--primary)] text-white"
-                : p.correct === false
-                  ? "bg-[var(--danger)] text-white"
-                  : p.answered
-                    ? "bg-[var(--primary)]/20 text-[var(--foreground)]"
-                    : "bg-black/[0.05] text-[var(--muted)]"
-            }`}
+            type="button"
+            ref={paletteToggleRef}
+            onClick={() => setPaletteOpen((v) => !v)}
+            aria-expanded={paletteOpen}
+            aria-controls="question-palette"
+            className="btn-ghost h-9 px-2 text-xs"
           >
-            {p.i + 1}
+            {paletteOpen ? "Hide" : "Jump to"}
+            <span aria-hidden="true" className="text-[10px]">
+              {paletteOpen ? "▲" : "▼"}
+            </span>
           </button>
-        ))}
+        </div>
+
+        <div
+          className="h-1.5 w-full overflow-hidden rounded-full bg-black/[0.06]"
+          role="progressbar"
+          aria-valuenow={answeredCount}
+          aria-valuemin={0}
+          aria-valuemax={questions.length}
+          aria-label={`${answeredCount} of ${questions.length} questions answered`}
+        >
+          <div
+            className="h-full rounded-full bg-[var(--primary)] transition-[width] duration-300"
+            style={{ width: `${(answeredCount / questions.length) * 100}%` }}
+          />
+        </div>
+
+        {paletteOpen && (
+          <div
+            id="question-palette"
+            className="pop-in mt-3 grid max-h-56 grid-cols-8 gap-1 overflow-y-auto rounded-xl bg-white/40 p-2 sm:grid-cols-10"
+          >
+            {palette.map((p) => (
+              <button
+                key={p.i}
+                onClick={() => {
+                  setIndex(p.i);
+                  setPaletteOpen(false);
+                  paletteToggleRef.current?.focus();
+                }}
+                aria-current={p.i === index ? "true" : undefined}
+                aria-label={`Question ${p.i + 1}${p.answered ? ", answered" : ""}`}
+                className={`h-9 rounded-lg text-xs transition-colors ${
+                  p.i === index ? "ring-2 ring-[var(--primary)]" : ""
+                } ${
+                  p.correct === true
+                    ? "bg-[var(--primary)] font-medium text-white"
+                    : p.correct === false
+                      ? "bg-[var(--danger)] font-medium text-white"
+                      : p.answered
+                        ? "bg-[var(--primary)]/12 font-medium text-[var(--foreground)]"
+                        : "text-[var(--muted)] hover:bg-black/[0.04]"
+                }`}
+              >
+                {p.i + 1}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Question card */}
@@ -278,8 +395,13 @@ export default function ExamRunner({
         </div>
       )}
 
-      {/* Footer nav */}
-      <div className="mt-4 flex items-center justify-between">
+      {/* Footer nav — sticky so it stays under the thumb on a phone. Safe to
+          pin: InstallPrompt is suppressed on /exam routes, so nothing else
+          occupies the bottom edge. */}
+      <div
+        className="glass-soft sticky bottom-0 z-10 mt-4 flex items-center justify-between gap-3 rounded-2xl px-3 py-3"
+        style={{ marginBottom: "env(safe-area-inset-bottom)" }}
+      >
         <button
           className="btn-outline"
           onClick={() => setIndex((i) => Math.max(0, i - 1))}
@@ -301,7 +423,7 @@ export default function ExamRunner({
 
       {!isPractice && index === questions.length - 1 && (
         <p className="mt-3 text-center text-xs text-[var(--muted)]">
-          You can review answers using the grid above before submitting.
+          Use “Jump to” above to review your answers before submitting.
         </p>
       )}
       </div>
