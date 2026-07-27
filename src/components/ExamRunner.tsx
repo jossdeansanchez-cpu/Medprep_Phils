@@ -54,6 +54,7 @@ export default function ExamRunner({
   );
   const [isSubmitting, startSubmit] = useTransition();
   const [capMessage, setCapMessage] = useState<string | null>(null);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const submittedRef = useRef(false);
 
   const q = questions[index];
@@ -61,9 +62,29 @@ export default function ExamRunner({
 
   const doSubmit = useCallback(() => {
     if (submittedRef.current) return;
+    // Guard against double-taps while a submit is in flight, but release it if
+    // the submit fails — otherwise a dropped mobile connection would leave the
+    // student permanently unable to retry (their answers are already saved).
     submittedRef.current = true;
-    startSubmit(() => {
-      submitAttempt(attemptId);
+    setSubmitError(null);
+    startSubmit(async () => {
+      try {
+        const res = await submitAttempt(attemptId);
+        // A successful submit redirects, so reaching here means it failed.
+        if (res?.error) {
+          submittedRef.current = false;
+          setSubmitError(res.error);
+        }
+      } catch (err) {
+        // redirect() signals via a thrown NEXT_REDIRECT — never treat it as a
+        // failure or we'd block the navigation to the results page.
+        const digest = (err as { digest?: string })?.digest;
+        if (typeof digest === "string" && digest.startsWith("NEXT_REDIRECT")) throw err;
+        submittedRef.current = false;
+        setSubmitError(
+          "We couldn't submit your exam — this is usually a connection problem. Your answers are saved. Please check your internet and try again."
+        );
+      }
     });
   }, [attemptId]);
 
@@ -247,6 +268,15 @@ export default function ExamRunner({
           </div>
         )}
       </div>
+
+      {submitError && (
+        <div className="mt-4 rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <p>{submitError}</p>
+          <button onClick={doSubmit} disabled={isSubmitting} className="btn-primary mt-2 text-xs">
+            {isSubmitting ? "Submitting…" : "Try again"}
+          </button>
+        </div>
+      )}
 
       {/* Footer nav */}
       <div className="mt-4 flex items-center justify-between">

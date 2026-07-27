@@ -7,7 +7,7 @@
  * paywalled page after a plan lapses. We therefore cache ONLY immutable static
  * build assets, and fall back to a small offline page for navigations.
  */
-const VERSION = "medprep-v1";
+const VERSION = "medprep-v2";
 const OFFLINE_URL = "/offline.html";
 const PRECACHE = [OFFLINE_URL, "/icons/icon-192.png", "/icons/icon-512.png"];
 
@@ -46,9 +46,12 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Immutable build output (/_next/static/**) — safe to cache-first, since the
-  // filenames are content-hashed and change on every deploy.
-  if (url.pathname.startsWith("/_next/static/") || url.pathname.startsWith("/icons/")) {
+  // Icons only. We deliberately DO NOT cache /_next/static JS: serving a stale
+  // chunk to a student mid-exam can break the page (it once hid the Submit
+  // button behind an old build), and the browser's own HTTP cache already
+  // handles those files efficiently via immutable headers. The offline page is
+  // the only thing we really need cached.
+  if (url.pathname.startsWith("/icons/")) {
     event.respondWith(
       caches.match(request).then(
         (hit) =>
@@ -64,6 +67,6 @@ self.addEventListener("fetch", (event) => {
     );
   }
 
-  // Everything else (API routes, RSC payloads, data) falls through to the
-  // network untouched — no caching.
+  // Everything else (app code, API routes, RSC payloads, data) goes straight to
+  // the network — never cached.
 });

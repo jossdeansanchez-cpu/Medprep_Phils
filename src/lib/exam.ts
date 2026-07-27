@@ -38,12 +38,26 @@ export async function saveAnswer(
   return data as SaveAnswerResult;
 }
 
-/** Grade the attempt and go to the results page. */
-export async function submitAttempt(attemptId: string) {
+/**
+ * Grade the attempt and go to the results page.
+ *
+ * Returns `{ error }` rather than throwing so a failure (flaky mobile
+ * connection is the common one) surfaces as a retryable message instead of a
+ * crash — Next.js masks thrown server-action errors in production anyway.
+ *
+ * Submitting is idempotent from the caller's point of view: if the attempt was
+ * already submitted (e.g. the first request succeeded but the phone dropped
+ * before the response arrived, and the student retried) that's the desired end
+ * state, so we go to the results instead of reporting an error.
+ */
+export async function submitAttempt(attemptId: string): Promise<{ error: string } | void> {
   const supabase = await createClient();
   const { error } = await supabase.rpc("submit_attempt", {
     p_attempt_id: attemptId,
   });
-  if (error) throw new Error(error.message);
+  if (error && !/already submitted/i.test(error.message)) {
+    return { error: error.message };
+  }
+  // Must stay outside any try/catch: redirect() works by throwing NEXT_REDIRECT.
   redirect(`/results/${attemptId}`);
 }
