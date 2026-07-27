@@ -58,6 +58,7 @@ export default function ExamRunner({
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
   const [confirmExit, setConfirmExit] = useState(false);
+  const [confirmSubmit, setConfirmSubmit] = useState(false);
   const submittedRef = useRef(false);
   const paletteToggleRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
@@ -155,6 +156,31 @@ export default function ExamRunner({
       })),
     [questions, answers, reveals]
   );
+
+  // Question numbers (1-based) the student hasn't answered yet.
+  const unanswered = useMemo(
+    () => palette.filter((p) => !p.answered).map((p) => p.i + 1),
+    [palette]
+  );
+  const allAnswered = unanswered.length === 0;
+
+  /** Jump to the first unanswered question, closing the palette. */
+  const goToFirstUnanswered = useCallback(() => {
+    const first = palette.find((p) => !p.answered);
+    if (!first) return;
+    setIndex(first.i);
+    setPaletteOpen(false);
+    setConfirmSubmit(false);
+  }, [palette]);
+
+  /** Mock exams: warn before submitting with blanks. Practice can just finish. */
+  const requestSubmit = useCallback(() => {
+    if (!isPractice && unanswered.length > 0) {
+      setConfirmSubmit(true);
+      return;
+    }
+    doSubmit();
+  }, [isPractice, unanswered.length, doSubmit]);
 
   if (!q) {
     return (
@@ -270,6 +296,11 @@ export default function ExamRunner({
           <p className="text-sm font-medium">
             Question {index + 1}{" "}
             <span className="font-normal text-[var(--muted)]">of {questions.length}</span>
+            {!isPractice && unanswered.length > 0 && (
+              <span className="ml-2 font-normal text-[var(--muted)]">
+                · {unanswered.length} unanswered
+              </span>
+            )}
           </p>
           <button
             type="button"
@@ -330,6 +361,21 @@ export default function ExamRunner({
                 {p.i + 1}
               </button>
             ))}
+          </div>
+        )}
+
+        {paletteOpen && !isPractice && unanswered.length > 0 && (
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <p className="text-xs text-[var(--muted)]">
+              {unanswered.length} unanswered
+            </p>
+            <button
+              type="button"
+              onClick={goToFirstUnanswered}
+              className="btn-ghost h-8 px-2 text-xs text-[var(--primary)]"
+            >
+              Go to first unanswered →
+            </button>
           </div>
         )}
       </div>
@@ -395,6 +441,37 @@ export default function ExamRunner({
         </div>
       )}
 
+      {/* Submitting with blanks — list exactly which questions are missing so
+          the student can go back to them instead of guessing. */}
+      {confirmSubmit && (
+        <div className="glass pop-in mt-4 p-4">
+          <p className="text-sm font-medium">
+            {unanswered.length} question{unanswered.length === 1 ? "" : "s"} still unanswered
+          </p>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            Unanswered questions are marked wrong. You can go back and finish them, or submit
+            as is.
+          </p>
+          <p className="mt-2 max-h-20 overflow-y-auto text-sm font-medium">
+            {unanswered.slice(0, 40).join(", ")}
+            {unanswered.length > 40 ? `, +${unanswered.length - 40} more` : ""}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button type="button" onClick={goToFirstUnanswered} className="btn-primary text-sm">
+              Go to first unanswered
+            </button>
+            <button
+              type="button"
+              onClick={doSubmit}
+              disabled={isSubmitting}
+              className="btn-outline text-sm"
+            >
+              {isSubmitting ? "Submitting…" : "Submit anyway"}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Footer nav — sticky so it stays under the thumb on a phone. Safe to
           pin: InstallPrompt is suppressed on /exam routes, so nothing else
           occupies the bottom edge. */}
@@ -410,20 +487,30 @@ export default function ExamRunner({
           ← Previous
         </button>
 
-        {index < questions.length - 1 ? (
-          <button className="btn-primary" onClick={() => setIndex((i) => i + 1)}>
-            Next →
-          </button>
-        ) : (
-          <button className="btn-primary" onClick={doSubmit} disabled={isSubmitting}>
-            {isSubmitting ? "Submitting…" : isPractice ? "Finish & see results" : "Submit exam"}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {index < questions.length - 1 && (
+            <button
+              className={allAnswered ? "btn-outline" : "btn-primary"}
+              onClick={() => setIndex((i) => i + 1)}
+            >
+              Next →
+            </button>
+          )}
+          {/* Submit is reachable from anywhere once everything is answered —
+              no need to navigate back to the last question. */}
+          {(allAnswered || index === questions.length - 1) && (
+            <button className="btn-primary" onClick={requestSubmit} disabled={isSubmitting}>
+              {isSubmitting ? "Submitting…" : isPractice ? "Finish & see results" : "Submit exam"}
+            </button>
+          )}
+        </div>
       </div>
 
-      {!isPractice && index === questions.length - 1 && (
+      {!isPractice && (allAnswered || index === questions.length - 1) && (
         <p className="mt-3 text-center text-xs text-[var(--muted)]">
-          Use “Jump to” above to review your answers before submitting.
+          {allAnswered
+            ? "All questions answered. Use “Jump to” to review before submitting."
+            : "Use “Jump to” above to review your answers before submitting."}
         </p>
       )}
       </div>
