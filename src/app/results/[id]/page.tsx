@@ -36,16 +36,18 @@ export default async function ResultsPage({
   if (!attempt) notFound();
   if (attempt.status !== "submitted") redirect(`/exam/${id}`);
 
-  const template = attempt.exam_templates as unknown as {
+  // The template can come back null if the exam was later deleted and RLS hides
+  // it. Fall back to the standard PLE thresholds rather than crashing — a
+  // student must always be able to review an exam they actually sat.
+  const template = (attempt.exam_templates as unknown as {
     title: string;
     pass_average: number;
     min_subject_score: number;
-  };
+  } | null) ?? { title: "Exam", pass_average: 75, min_subject_score: 50 };
 
   const { data: review, error } = await supabase.rpc("get_attempt_review", {
     p_attempt_id: id,
   });
-  if (error) throw new Error(error.message);
   const rows = (review ?? []) as ReviewRow[];
 
   // Per-subject aggregation for the breakdown.
@@ -117,6 +119,13 @@ export default async function ResultsPage({
         {/* Question review */}
         <section className="space-y-3">
           <h2 className="font-medium">Review</h2>
+          {rows.length === 0 && (
+            <div className="glass p-5 text-sm text-[var(--muted)]">
+              {error
+                ? "We couldn't load the answer review for this attempt. Your score above is saved — please try refreshing."
+                : "No questions to review for this attempt."}
+            </div>
+          )}
           {rows.map((r) => (
             <div key={r.item_no} className="glass p-5">
               <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
