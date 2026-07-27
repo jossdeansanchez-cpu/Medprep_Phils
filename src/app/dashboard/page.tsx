@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getEntitlements, hasAtLeast } from "@/lib/billing/entitlements";
+import { getEntitlements, getExamUsage, hasAtLeast, remaining } from "@/lib/billing/entitlements";
 import ExamCard from "@/components/ExamCard";
 import UpgradeGate from "@/components/UpgradeGate";
 import { categoryLabel, type ExamCategory } from "@/lib/categories";
@@ -36,8 +36,10 @@ export default async function Dashboard() {
     .select("id, status, started_at, general_average, passed, exam_templates(title, category)")
     .order("started_at", { ascending: false });
 
-  const { plan } = await getEntitlements();
-  const canMock = hasAtLeast(plan, "pro");
+  const [{ plan }, usage] = await Promise.all([getEntitlements(), getExamUsage()]);
+  // Exams left this period, per kind — drives the card CTA.
+  const leftMock = remaining(usage, true);
+  const leftOther = remaining(usage, false);
   const canHistory = hasAtLeast(plan, "basic");
 
   const templates = (publishedTemplates ?? []) as ExamTemplate[];
@@ -88,7 +90,11 @@ export default async function Dashboard() {
         ) : (
           <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {newest.map((t) => (
-              <ExamCard key={t.id} t={t} canMock={canMock} />
+              <ExamCard
+                  key={t.id}
+                  t={t}
+                  remainingForKind={t.category === "mock_exam" ? leftMock : leftOther}
+                />
             ))}
           </div>
         )}

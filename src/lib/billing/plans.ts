@@ -30,7 +30,8 @@ export const PLANS: PlanDef[] = [
     blurb: "Unlimited practice",
     monthly: 499,
     features: [
-      "Unlimited study mode",
+      "Unlimited daily & weekly exams",
+      "2 mock exams per month",
       "All 12 PLE subjects",
       "Instant answer explanations",
       "Saved practice history",
@@ -44,7 +45,7 @@ export const PLANS: PlanDef[] = [
     highlighted: true,
     features: [
       "Everything in Basic",
-      "Unlimited timed mock exams",
+      "10 mock exams per month",
       "Full results & per-subject review",
       "Up to 2 devices",
     ],
@@ -52,16 +53,29 @@ export const PLANS: PlanDef[] = [
   {
     tier: "max_pro",
     name: "Max Pro",
-    blurb: "Track your progress",
+    blurb: "Everything, unlimited",
     monthly: 799,
     features: [
       "Everything in Pro",
+      "Unlimited mock exams",
+      "Resources: books, PDFs & review materials",
       "Analytics dashboard",
-      "Weak-subject insights",
       "Up to 3 devices",
     ],
   },
 ];
+
+/**
+ * Exams allowed per billing period. `null` = unlimited.
+ * Mirrors public.plan_exam_limit() in the database, which is the real
+ * enforcement point — this copy only drives the UI.
+ */
+export const EXAM_LIMITS: Record<PlanTier, { mock: number | null; practice: number | null }> = {
+  free: { mock: 0, practice: 1 },
+  basic: { mock: 2, practice: null },
+  pro: { mock: 10, practice: null },
+  max_pro: { mock: null, practice: null },
+};
 
 export function planByTier(tier: PlanTier): PlanDef | undefined {
   return PLANS.find((p) => p.tier === tier);

@@ -1,0 +1,11 @@
+-- New plan model, enforced server-side in start_attempt:
+--   free     1 practice exam / period, no mock exams
+--   basic    unlimited practice, 2 mock exams / period
+--   pro      unlimited practice, 10 mock exams / period
+--   max_pro  unlimited everything + Resources library
+-- Quotas reset each billing period. Admins are exempt so they can test.
+--
+-- Adds: entitlement_period_start(), plan_exam_limit(), my_exam_usage(),
+-- a quota gate inside start_attempt, and the `resources` table (Max-Pro-only
+-- RLS read policy). The full function bodies were applied via the Supabase
+-- migration API; see the dashboard for the canonical definitions.

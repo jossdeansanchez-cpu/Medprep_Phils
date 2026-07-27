@@ -1,0 +1,3 @@
+-- Free is now "1 exam per month" (start_attempt), not "10 answers per day".
+-- The old daily cap would stop a free user part-way through the single exam
+-- they're entitled to, so save_answer no longer touches practice_daily.

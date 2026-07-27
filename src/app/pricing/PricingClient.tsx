@@ -76,7 +76,8 @@ export default function PricingClient({
         </div>
 
         <p className="mt-6 text-center text-xs text-[var(--muted)]">
-          Free plan: study mode with 10 questions/day. Cancel anytime.
+          Free plan: 1 daily or weekly practice exam per month — mock exams need a paid plan.
+          Exam allowances reset every month. Cancel anytime.
         </p>
       </div>
     </main>

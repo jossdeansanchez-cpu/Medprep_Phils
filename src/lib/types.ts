@@ -25,6 +25,20 @@ export interface Subject {
   order: number;
 }
 
+export type ResourceKind = "book" | "pdf" | "review";
+
+/** A Max Pro study resource — an external link to a book, PDF or review exam. */
+export interface Resource {
+  id: string;
+  title: string;
+  description: string | null;
+  url: string;
+  kind: ResourceKind;
+  sort_order: number;
+  created_by: string | null;
+  created_at: string;
+}
+
 export interface Question {
   id: string;
   subject_id: string;

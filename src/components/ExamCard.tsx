@@ -7,9 +7,23 @@ export function isRecent(createdAt: string): boolean {
   return Date.now() - new Date(createdAt).getTime() < 7 * 24 * 60 * 60 * 1000;
 }
 
-/** A start-able exam card. Mock exams show an upgrade CTA for non-Pro students. */
-export default function ExamCard({ t, canMock }: { t: ExamTemplate; canMock: boolean }) {
-  const locked = t.category === "mock_exam" && !canMock;
+/**
+ * A start-able exam card. `remainingForKind` is how many exams of this kind the
+ * student has left this period (null = unlimited); when it hits 0 the card
+ * shows an upgrade CTA instead of Start, matching the server-side quota in
+ * start_attempt so they never get a raw error.
+ */
+export default function ExamCard({
+  t,
+  remainingForKind,
+}: {
+  t: ExamTemplate;
+  remainingForKind: number | null;
+}) {
+  const isMock = t.category === "mock_exam";
+  const locked = remainingForKind !== null && remainingForKind <= 0;
+  const showCount = remainingForKind !== null && remainingForKind > 0 && remainingForKind <= 3;
+
   return (
     <div className="glass lift flex flex-col justify-between gap-3 p-5">
       <div>
@@ -19,6 +33,11 @@ export default function ExamCard({ t, canMock }: { t: ExamTemplate; canMock: boo
           </span>
           {isRecent(t.created_at) && (
             <span className="badge bg-amber-100 text-amber-700">New</span>
+          )}
+          {showCount && (
+            <span className="badge bg-amber-100 text-amber-700">
+              {remainingForKind} left
+            </span>
           )}
         </div>
         <h3 className="font-semibold">{t.title}</h3>
@@ -31,7 +50,7 @@ export default function ExamCard({ t, canMock }: { t: ExamTemplate; canMock: boo
       </div>
       {locked ? (
         <Link href="/pricing" className="btn-primary w-full whitespace-nowrap">
-          ✦ Unlock with Pro
+          ✦ {isMock ? "Unlock mock exams" : "Upgrade to continue"}
         </Link>
       ) : (
         <form action={startAttempt.bind(null, t.id)}>

@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getEntitlements, hasAtLeast } from "@/lib/billing/entitlements";
+import { getEntitlements, getExamUsage, hasAtLeast, remaining } from "@/lib/billing/entitlements";
 import ExamCard from "@/components/ExamCard";
 import {
   CATEGORY_ORDER,
@@ -38,8 +38,10 @@ export default async function ExamsCatalog({
     .eq("is_published", true)
     .order("created_at", { ascending: false });
 
-  const { plan } = await getEntitlements();
-  const canMock = hasAtLeast(plan, "pro");
+  const [{ plan }, usage] = await Promise.all([getEntitlements(), getExamUsage()]);
+  // Exams left this period, per kind — drives the card CTA.
+  const leftMock = remaining(usage, true);
+  const leftOther = remaining(usage, false);
 
   const templates = (data ?? []) as ExamTemplate[];
   const newest = templates.slice(0, 3);
@@ -70,7 +72,11 @@ export default async function ExamsCatalog({
         ) : (
           <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {results.map((t) => (
-              <ExamCard key={t.id} t={t} canMock={canMock} />
+              <ExamCard
+                  key={t.id}
+                  t={t}
+                  remainingForKind={t.category === "mock_exam" ? leftMock : leftOther}
+                />
             ))}
           </div>
         )}
@@ -99,7 +105,11 @@ export default async function ExamsCatalog({
             <h2 className="mb-3 text-lg font-semibold">Recently added</h2>
             <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {newest.map((t) => (
-                <ExamCard key={t.id} t={t} canMock={canMock} />
+                <ExamCard
+                  key={t.id}
+                  t={t}
+                  remainingForKind={t.category === "mock_exam" ? leftMock : leftOther}
+                />
               ))}
             </div>
           </section>
@@ -123,7 +133,11 @@ export default async function ExamsCatalog({
                 ) : (
                   <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                     {items.map((t) => (
-                      <ExamCard key={t.id} t={t} canMock={canMock} />
+                      <ExamCard
+                  key={t.id}
+                  t={t}
+                  remainingForKind={t.category === "mock_exam" ? leftMock : leftOther}
+                />
                     ))}
                   </div>
                 )}

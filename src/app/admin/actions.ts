@@ -313,6 +313,52 @@ export async function deleteAnnouncement(id: string) {
   revalidatePath("/", "layout");
 }
 
+/** Add a Max Pro study resource (book / PDF / review exam link). */
+export async function createResource(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const profile = await requireAdmin();
+  const supabase = await createClient();
+
+  const title = String(formData.get("title") ?? "").trim();
+  const url = String(formData.get("url") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const kind = String(formData.get("kind") ?? "book");
+  const sortRaw = String(formData.get("sort_order") ?? "").trim();
+
+  if (!title) return { error: "Give the resource a title." };
+  if (!/^https?:\/\//i.test(url)) {
+    return { error: "Enter a full link starting with http:// or https://" };
+  }
+  if (!["book", "pdf", "review"].includes(kind)) {
+    return { error: "Pick a valid type." };
+  }
+
+  const { error } = await supabase.from("resources").insert({
+    title,
+    url,
+    description: description || null,
+    kind,
+    sort_order: sortRaw ? Number(sortRaw) : 0,
+    created_by: profile.id,
+  });
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/resources");
+  revalidatePath("/resources");
+  return { message: `Added “${title}”.` };
+}
+
+export async function deleteResource(id: string) {
+  await requireAdmin();
+  const supabase = await createClient();
+  const { error } = await supabase.from("resources").delete().eq("id", id);
+  if (error) throw new Error(error.message);
+  revalidatePath("/admin/resources");
+  revalidatePath("/resources");
+}
+
 export async function setQuestionCategory(id: string, category: string) {
   await requireAdmin();
   const supabase = await createClient();
