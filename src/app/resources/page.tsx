@@ -26,13 +26,14 @@ export default async function ResourcesPage() {
 
   const { plan } = await getEntitlements();
 
-  if (!hasAtLeast(plan, "max_pro")) {
+  // Available on every paid plan (Basic and up) — only the free plan is gated.
+  if (!hasAtLeast(plan, "basic")) {
     return (
       <AppShell profile={profile} greeting="Study library" title="Resources">
         <div className="mx-auto max-w-xl">
           <UpgradeGate
-            title="Resources is a Max Pro feature"
-            body="Upgrade to Max Pro for curated books, PDF references and review exams — plus unlimited mock exams."
+            title="Resources come with any paid plan"
+            body="Subscribe to unlock curated books, PDF references and review exams — starting with Basic."
           />
         </div>
       </AppShell>

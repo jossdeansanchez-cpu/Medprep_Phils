@@ -24,7 +24,7 @@ export default async function AdminResourcesPage() {
         <h1 className="mb-3 text-xl font-semibold">Resources</h1>
         <ResourceForm />
         <p className="mt-3 text-xs text-[var(--muted)]">
-          Resources are visible only to students on the Max Pro plan.
+          Resources are visible to students on any paid plan (Basic, Pro or Max Pro).
         </p>
       </div>
 

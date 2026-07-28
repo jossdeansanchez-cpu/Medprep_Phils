@@ -32,6 +32,7 @@ export const PLANS: PlanDef[] = [
     features: [
       "Unlimited daily & weekly exams",
       "2 mock exams per month",
+      "Resources: books, PDFs & review materials",
       "All 12 PLE subjects",
       "Instant answer explanations",
       "Saved practice history",
@@ -58,8 +59,8 @@ export const PLANS: PlanDef[] = [
     features: [
       "Everything in Pro",
       "Unlimited mock exams",
-      "Resources: books, PDFs & review materials",
       "Analytics dashboard",
+      "Weak-subject insights",
       "Up to 3 devices",
     ],
   },
