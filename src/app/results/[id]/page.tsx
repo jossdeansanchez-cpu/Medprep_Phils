@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import { getCurrentProfile } from "@/lib/auth";
@@ -67,6 +68,10 @@ export default async function ResultsPage({
   return (
     <AppShell profile={profile} greeting={`${template.title}`} title="Results">
       <div className="mx-auto max-w-3xl space-y-6">
+        <Link href="/results" className="text-sm text-[var(--muted)] hover:underline">
+          ← All my results
+        </Link>
+
         {/* Score summary */}
         <div className="glass flex flex-col items-center gap-2 p-5 text-center">
           <div

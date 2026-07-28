@@ -3,9 +3,8 @@ import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import { getEntitlements, getExamUsage, hasAtLeast, remaining } from "@/lib/billing/entitlements";
+import { getExamUsage, remaining } from "@/lib/billing/entitlements";
 import ExamCard from "@/components/ExamCard";
-import UpgradeGate from "@/components/UpgradeGate";
 import { categoryLabel, type ExamCategory } from "@/lib/categories";
 import type { ExamTemplate } from "@/lib/types";
 
@@ -36,11 +35,10 @@ export default async function Dashboard() {
     .select("id, status, started_at, general_average, passed, exam_templates(title, category)")
     .order("started_at", { ascending: false });
 
-  const [{ plan }, usage] = await Promise.all([getEntitlements(), getExamUsage()]);
+  const usage = await getExamUsage();
   // Exams left this period, per kind — drives the card CTA.
   const leftMock = remaining(usage, true);
   const leftOther = remaining(usage, false);
-  const canHistory = hasAtLeast(plan, "basic");
 
   const templates = (publishedTemplates ?? []) as ExamTemplate[];
   const history = (attempts ?? []) as unknown as AttemptRow[];
@@ -121,13 +119,11 @@ export default async function Dashboard() {
         <section className="glass p-5 lg:col-span-2">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="font-semibold">Recent attempts</h2>
+            <Link href="/results" className="text-sm font-medium text-[var(--primary)]">
+              View all →
+            </Link>
           </div>
-          {!canHistory ? (
-            <UpgradeGate
-              title="Saved history is a Basic feature"
-              body="Upgrade to keep a record of your attempts and scores."
-            />
-          ) : history.length === 0 ? (
+          {history.length === 0 ? (
             <p className="py-6 text-center text-sm text-[var(--muted)]">No attempts yet.</p>
           ) : (
             <table className="w-full text-left text-sm">
@@ -137,7 +133,7 @@ export default async function Dashboard() {
                   <th className="py-2 font-medium">Exam</th>
                   <th className="py-2 font-medium">Date</th>
                   <th className="py-2 text-right font-medium">Score</th>
-                  <th className="py-2 text-right font-medium">Result</th>
+                  <th className="py-2 text-right font-medium">Review</th>
                 </tr>
               </thead>
               <tbody>
@@ -156,21 +152,25 @@ export default async function Dashboard() {
                       {new Date(a.started_at).toLocaleDateString()}
                     </td>
                     <td className="py-2.5 text-right font-medium">
-                      {a.status === "submitted" && a.general_average != null
-                        ? `${a.general_average}%`
-                        : "—"}
+                      {a.status === "submitted" && a.general_average != null ? (
+                        <span
+                          className={
+                            a.passed ? "text-[var(--primary)]" : "text-[var(--danger)]"
+                          }
+                        >
+                          {a.general_average}%
+                        </span>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td className="py-2.5 text-right">
                       {a.status === "submitted" ? (
                         <Link
                           href={`/results/${a.id}`}
-                          className={`badge ${
-                            a.passed
-                              ? "bg-[var(--primary)]/10 text-[var(--primary)]"
-                              : "bg-[var(--danger)]/10 text-[var(--danger)]"
-                          }`}
+                          className="font-medium text-[var(--primary)] underline-offset-2 hover:underline"
                         >
-                          {a.passed ? "PASS" : "FAIL"}
+                          Review
                         </Link>
                       ) : (
                         <Link href={`/exam/${a.id}`} className="badge bg-amber-100 text-amber-700">
