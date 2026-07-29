@@ -142,14 +142,23 @@ function AttemptRow({ a }: { a: AttemptSummary }) {
               {a.passed ? "PASSED" : "FAILED"}
             </span>
           </div>
-          <Link href={`/results/${a.id}`} className="btn-outline w-full sm:w-auto">
+          <Link
+            href={`/results/${a.id}`}
+            className="btn-primary w-full sm:w-auto"
+            aria-label={`Review your answers for ${a.title}`}
+          >
             Review answers
+            <span aria-hidden="true">→</span>
           </Link>
         </>
       ) : (
         <>
           <span className="badge bg-amber-100 text-amber-700">In progress</span>
-          <Link href={`/exam/${a.id}`} className="btn-primary w-full sm:w-auto">
+          <Link
+            href={`/exam/${a.id}`}
+            className="btn-outline w-full sm:w-auto"
+            aria-label={`Resume ${a.title}`}
+          >
             Resume
           </Link>
         </>

@@ -168,12 +168,18 @@ export default async function Dashboard() {
                       {a.status === "submitted" ? (
                         <Link
                           href={`/results/${a.id}`}
-                          className="font-medium text-[var(--primary)] underline-offset-2 hover:underline"
+                          className="btn-primary px-3 py-1.5 text-xs"
+                          aria-label={`Review your answers for ${
+                            a.exam_templates?.title ?? "this exam"
+                          }`}
                         >
                           Review
                         </Link>
                       ) : (
-                        <Link href={`/exam/${a.id}`} className="badge bg-amber-100 text-amber-700">
+                        <Link
+                          href={`/exam/${a.id}`}
+                          className="btn-outline px-3 py-1.5 text-xs"
+                        >
                           Resume
                         </Link>
                       )}
