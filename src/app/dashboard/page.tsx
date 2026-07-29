@@ -4,6 +4,7 @@ import AppShell from "@/components/AppShell";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getExamUsage, remaining } from "@/lib/billing/entitlements";
+import { isAttemptExpired } from "@/lib/attempt-expiry";
 import ExamCard from "@/components/ExamCard";
 import { categoryLabel, type ExamCategory } from "@/lib/categories";
 import type { ExamTemplate } from "@/lib/types";
@@ -14,8 +15,23 @@ type AttemptRow = {
   started_at: string;
   general_average: number | null;
   passed: boolean | null;
-  exam_templates: { title: string; category: string } | null;
+  exam_templates: {
+    title: string;
+    category: string;
+    mode: string;
+    time_limit_minutes: number | null;
+  } | null;
 };
+
+/** Timed attempt whose wall-clock deadline has already passed — not resumable. */
+function isExpired(a: AttemptRow): boolean {
+  return isAttemptExpired({
+    status: a.status,
+    startedAt: a.started_at,
+    mode: a.exam_templates?.mode,
+    timeLimitMinutes: a.exam_templates?.time_limit_minutes,
+  });
+}
 
 export default async function Dashboard() {
   const profile = await getCurrentProfile();
@@ -32,7 +48,9 @@ export default async function Dashboard() {
 
   const { data: attempts } = await supabase
     .from("exam_attempts")
-    .select("id, status, started_at, general_average, passed, exam_templates(title, category)")
+    .select(
+      "id, status, started_at, general_average, passed, exam_templates(title, category, mode, time_limit_minutes)"
+    )
     .order("started_at", { ascending: false });
 
   const usage = await getExamUsage();
@@ -180,7 +198,7 @@ export default async function Dashboard() {
                           href={`/exam/${a.id}`}
                           className="btn-outline px-3 py-1.5 text-xs"
                         >
-                          Resume
+                          {isExpired(a) ? "Start again" : "Resume"}
                         </Link>
                       )}
                     </td>

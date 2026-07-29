@@ -14,6 +14,37 @@ export async function startAttempt(templateId: string) {
   redirect(`/exam/${data as string}`);
 }
 
+/**
+ * Throw away a timed attempt whose clock ran out before the student answered
+ * anything, then start the same exam fresh.
+ *
+ * The deadline is wall-clock, so it keeps running while the student is away —
+ * an interruption could otherwise cost them a mock exam from their plan quota
+ * and leave a 0% on their record for an exam they never sat. Deleting the dead
+ * row is what refunds the quota, since the gate in start_attempt counts rows.
+ *
+ * Every precondition (ownership, timed exam, actually expired, nothing
+ * answered) is re-checked in discard_expired_attempt — the client clock is not
+ * trusted, or a student could wipe an exam they were doing badly at.
+ */
+export async function retakeExpiredAttempt(
+  attemptId: string
+): Promise<{ error: string } | void> {
+  const supabase = await createClient();
+  const { data: templateId, error } = await supabase.rpc("discard_expired_attempt", {
+    p_attempt_id: attemptId,
+  });
+  if (error) return { error: error.message };
+
+  const { data: fresh, error: startError } = await supabase.rpc("start_attempt", {
+    p_template_id: templateId as string,
+  });
+  if (startError) return { error: startError.message };
+
+  // Outside any try/catch: redirect() works by throwing NEXT_REDIRECT.
+  redirect(`/exam/${fresh as string}`);
+}
+
 export type SaveAnswerResult = {
   revealed: boolean;
   is_correct?: boolean;

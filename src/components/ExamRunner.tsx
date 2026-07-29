@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { saveAnswer, submitAttempt } from "@/lib/exam";
+import ExpiredAttempt from "@/components/ExpiredAttempt";
 import type { ExamMode, OptionLabel, QuestionOption } from "@/lib/types";
 
 type RunnerQuestion = {
@@ -94,18 +95,20 @@ export default function ExamRunner({
     });
   }, [attemptId]);
 
-  // Countdown for timed mock exams; auto-submits at zero.
+  // Countdown for timed mock exams; auto-submits at zero — but only if there is
+  // something to grade. An exam that expired with no answers at all is offered
+  // as a free restart instead, matching what /exam/[id] does server-side.
   useEffect(() => {
     if (deadlineMs == null) return;
     const tick = () => {
       const left = deadlineMs - Date.now();
       setRemaining(left);
-      if (left <= 0) doSubmit();
+      if (left <= 0 && answeredCount > 0) doSubmit();
     };
     tick();
     const id = setInterval(tick, 1000);
     return () => clearInterval(id);
-  }, [deadlineMs, doSubmit]);
+  }, [deadlineMs, doSubmit, answeredCount]);
 
   function rollback(id: string) {
     setAnswers((a) => {
@@ -194,6 +197,11 @@ export default function ExamRunner({
   // wall-clock and doesn't pause). The countdown effect auto-submits; explain
   // that instead of silently bouncing them to the results page.
   if (deadlineMs != null && remaining != null && remaining <= 0) {
+    // Ran out without a single answer — nothing to grade, so offer the restart
+    // rather than recording a 0% for an exam they never really sat.
+    if (answeredCount === 0) {
+      return <ExpiredAttempt attemptId={attemptId} title={title} />;
+    }
     return (
       <main className="app-gradient grid min-h-[100dvh] place-items-center px-4">
         <div className="glass max-w-sm p-6 text-center">
