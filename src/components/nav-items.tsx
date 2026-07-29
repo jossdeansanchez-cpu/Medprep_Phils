@@ -132,13 +132,17 @@ export const navItems: NavItem[] = [
     ),
   },
   {
+    // Distinct from the student-facing "Resources" above: this one is the
+    // admin editor for that library, and two identical labels in one sidebar
+    // was confusing for admins, who see both.
     href: "/admin/resources",
-    label: "Resources",
+    label: "Reference settings",
     adminOnly: true,
     icon: (
       <svg className={ICON} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+        <circle cx="12" cy="11" r="2.2" />
+        <path d="M12 7.3v1.5M12 13.2v1.5M15.2 9.2l-1.3.75M10.1 12.05l-1.3.75M15.2 12.8l-1.3-.75M10.1 9.95l-1.3-.75" />
       </svg>
     ),
   },

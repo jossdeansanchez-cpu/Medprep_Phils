@@ -11,6 +11,8 @@ export type AttemptSummary = {
   submittedAt: string | null;
   generalAverage: number | null;
   passed: boolean | null;
+  /** Timed attempt whose wall-clock deadline has already passed. */
+  expired: boolean;
   title: string;
   category: ExamCategory | null;
 };
@@ -149,6 +151,17 @@ function AttemptRow({ a }: { a: AttemptSummary }) {
           >
             Review answers
             <span aria-hidden="true">→</span>
+          </Link>
+        </>
+      ) : a.expired ? (
+        <>
+          <span className="badge bg-[var(--danger)]/10 text-[var(--danger)]">Time&apos;s up</span>
+          <Link
+            href={`/exam/${a.id}`}
+            className="btn-outline w-full sm:w-auto"
+            aria-label={`Time ran out on ${a.title} — start it again`}
+          >
+            Start again
           </Link>
         </>
       ) : (

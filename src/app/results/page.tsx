@@ -3,6 +3,7 @@ import AppShell from "@/components/AppShell";
 import ResultsHistory, { type AttemptSummary } from "@/components/ResultsHistory";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { isAttemptExpired } from "@/lib/attempt-expiry";
 import type { ExamCategory } from "@/lib/categories";
 
 type Row = {
@@ -12,7 +13,12 @@ type Row = {
   submitted_at: string | null;
   general_average: number | null;
   passed: boolean | null;
-  exam_templates: { title: string; category: string } | null;
+  exam_templates: {
+    title: string;
+    category: string;
+    mode: string;
+    time_limit_minutes: number | null;
+  } | null;
 };
 
 export default async function ResultsHistoryPage() {
@@ -25,7 +31,7 @@ export default async function ResultsHistoryPage() {
   const { data } = await supabase
     .from("exam_attempts")
     .select(
-      "id, status, started_at, submitted_at, general_average, passed, exam_templates(title, category)"
+      "id, status, started_at, submitted_at, general_average, passed, exam_templates(title, category, mode, time_limit_minutes)"
     )
     .eq("user_id", profile.id)
     .order("started_at", { ascending: false });
@@ -38,6 +44,14 @@ export default async function ResultsHistoryPage() {
     submittedAt: r.submitted_at,
     generalAverage: r.general_average,
     passed: r.passed,
+    // A timed attempt whose wall-clock deadline has passed can't be resumed —
+    // labelling it "Resume" sends the student into a dead end.
+    expired: isAttemptExpired({
+      status: r.status,
+      startedAt: r.started_at,
+      mode: r.exam_templates?.mode,
+      timeLimitMinutes: r.exam_templates?.time_limit_minutes,
+    }),
     // The template is null when the exam was later deleted — the attempt and its
     // review still belong to the student, so fall back rather than hiding it.
     title: r.exam_templates?.title ?? "Exam",

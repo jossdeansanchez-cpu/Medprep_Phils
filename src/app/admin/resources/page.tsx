@@ -21,7 +21,7 @@ export default async function AdminResourcesPage() {
   return (
     <div className="grid gap-6 lg:grid-cols-[360px_1fr]">
       <div>
-        <h1 className="mb-3 text-xl font-semibold">Resources</h1>
+        <h1 className="mb-3 text-xl font-semibold">Reference settings</h1>
         <ResourceForm />
         <p className="mt-3 text-xs text-[var(--muted)]">
           Resources are visible to students on any paid plan (Basic, Pro or Max Pro).

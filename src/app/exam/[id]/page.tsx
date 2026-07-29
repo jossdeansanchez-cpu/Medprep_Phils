@@ -2,8 +2,10 @@ import { redirect, notFound } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import ExamRunner from "@/components/ExamRunner";
+import ExpiredAttempt from "@/components/ExpiredAttempt";
 import DeviceLimitBlock from "@/components/DeviceLimitBlock";
 import { checkDevice } from "@/lib/devices";
+import { attemptDeadlineMs, isAttemptExpired } from "@/lib/attempt-expiry";
 import type { ExamMode, OptionLabel, QuestionOption } from "@/lib/types";
 
 type RpcQuestion = {
@@ -56,11 +58,33 @@ export default async function ExamPage({
   });
   if (error) throw new Error(error.message);
 
-  // Compute remaining seconds for timed mock exams.
-  let deadlineMs: number | null = null;
-  if (template.mode === "mock" && template.time_limit_minutes) {
-    deadlineMs =
-      new Date(attempt.started_at).getTime() + template.time_limit_minutes * 60_000;
+  // Compute the deadline for timed mock exams.
+  const timing = {
+    status: attempt.status,
+    startedAt: attempt.started_at,
+    mode: template.mode,
+    timeLimitMinutes: template.time_limit_minutes,
+  };
+  const deadlineMs = attemptDeadlineMs(timing);
+
+  const rows = (questions ?? []) as RpcQuestion[];
+
+  // The deadline is wall-clock, so it keeps running while the student is away.
+  // Decide what an expired attempt does here rather than letting the runner
+  // mount into a dead end.
+  if (isAttemptExpired(timing)) {
+    const answered = rows.filter((r) => r.selected_label != null).length;
+
+    if (answered > 0) {
+      // A real sitting: grade what they managed and show the result. Doing this
+      // server-side is more reliable than the runner's auto-submit, which needs
+      // the tab to stay open long enough to fire.
+      await supabase.rpc("submit_attempt", { p_attempt_id: id });
+      redirect(`/results/${id}`);
+    }
+
+    // Nothing answered — no score worth keeping. Offer a free restart.
+    return <ExpiredAttempt attemptId={id} title={template.title} />;
   }
 
   return (
@@ -69,7 +93,7 @@ export default async function ExamPage({
       title={template.title}
       mode={template.mode}
       deadlineMs={deadlineMs}
-      questions={(questions ?? []) as RpcQuestion[]}
+      questions={rows}
     />
   );
 }
