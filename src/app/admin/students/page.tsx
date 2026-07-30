@@ -3,6 +3,7 @@ import StudentForm from "./StudentForm";
 import PlanSelect from "./PlanSelect";
 import RemoveStudent from "./RemoveStudent";
 import ResetPassword from "./ResetPassword";
+import ResetLink from "./ResetLink";
 import type { PlanTier } from "@/lib/billing/plans";
 import { DEVICE_LIMITS } from "@/lib/devices";
 
@@ -121,6 +122,7 @@ export default async function StudentsPage() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-wrap items-center justify-end gap-1.5">
+                        <ResetLink userId={s.id} name={s.full_name || s.email} />
                         <ResetPassword userId={s.id} name={s.full_name || s.email} />
                         <RemoveStudent userId={s.id} name={s.full_name || s.email} />
                       </div>
