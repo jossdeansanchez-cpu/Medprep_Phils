@@ -4,6 +4,8 @@ import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createRecoveryLink } from "@/lib/auth/recovery-link";
+import { sendEmail, emailLayout, emailConfigured } from "@/lib/email";
 
 export type AuthState = { error?: string; message?: string } | undefined;
 
@@ -72,16 +74,41 @@ export async function requestPasswordReset(
   const email = String(formData.get("email") ?? "").trim();
   if (!email.includes("@")) return { error: "Please enter a valid email address." };
 
+  // Always the same reply, whatever happens below: a different message for a
+  // known vs unknown address would let anyone enumerate who has an account.
+  const neutral: AuthState = {
+    message:
+      "If an account exists for that email, we've sent a reset link. Check your inbox (and spam).",
+  };
+
+  if (emailConfigured()) {
+    // Preferred path: mint the link ourselves and send it over the app's own
+    // SMTP. Supabase's built-in mailer is best-effort and rate limited per
+    // hour, which is why students were never receiving these.
+    const { link } = await createRecoveryLink(email);
+    if (link) {
+      await sendEmail({
+        to: email,
+        subject: "Reset your MEDprep password",
+        html: emailLayout({
+          heading: "Set a new password",
+          body: "You asked to reset your MEDprep password. This link works once and expires shortly. If you didn't ask for it, you can ignore this email — your password stays as it is.",
+          cta: { label: "Choose a new password", href: link },
+        }),
+      });
+    }
+    return neutral;
+  }
+
+  // Fallback while SMTP isn't configured: Supabase's built-in mailer. Delivery
+  // is best-effort, so this is a stopgap rather than the intended path.
   const site = process.env.NEXT_PUBLIC_SITE_URL || "https://medprep-teal.vercel.app";
   const supabase = await createClient();
   await supabase.auth.resetPasswordForEmail(email, {
     redirectTo: `${site}/auth/callback?next=/reset-password`,
   });
 
-  return {
-    message:
-      "If an account exists for that email, we've sent a reset link. Check your inbox (and spam).",
-  };
+  return neutral;
 }
 
 /** Set a new password for the current (recovery-session) user. */

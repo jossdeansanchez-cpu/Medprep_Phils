@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdmin } from "@/lib/auth";
+import { createRecoveryLink } from "@/lib/auth/recovery-link";
 import { validateRows, type RawRow, type ValidQuestion } from "@/lib/csv";
 import { sendEmail, emailLayout, emailConfigured, getStudentEmails } from "@/lib/email";
 import { CATEGORY_ORDER, type ExamCategory } from "@/lib/categories";
@@ -74,6 +75,35 @@ export async function setStudentPassword(
   const { error } = await admin.auth.admin.updateUserById(userId, { password: newPassword });
   if (error) return { error: error.message };
   return { ok: true };
+}
+
+/**
+ * Admin: mint a one-time reset link for a student to open themselves.
+ *
+ * Preferred over setting a password for them — the admin never learns the
+ * student's password, and it needs no working email, so it unblocks a student
+ * straight away over Messenger or SMS.
+ */
+export async function createStudentResetLink(
+  userId: string
+): Promise<{ link?: string; error?: string }> {
+  await requireAdmin();
+
+  const admin = createAdminClient();
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("role")
+    .eq("id", userId)
+    .single();
+  if (!profile) return { error: "Account not found." };
+  if (profile.role !== "student") {
+    return { error: "Only student reset links can be created here." };
+  }
+
+  const { data: userRes, error: userErr } = await admin.auth.admin.getUserById(userId);
+  if (userErr || !userRes?.user?.email) return { error: "That account has no email address." };
+
+  return createRecoveryLink(userRes.user.email);
 }
 
 /** Create a pre-confirmed student account (admin only). */
