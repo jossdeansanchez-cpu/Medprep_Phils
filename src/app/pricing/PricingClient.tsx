@@ -25,7 +25,7 @@ export default function PricingClient({
 
         <div className="stagger grid gap-5 md:grid-cols-3">
           {PLANS.map((p) => {
-            const price = p.monthly;
+            const price = p.price;
             const isCurrent = currentPlan === p.tier;
             return (
               <div
@@ -43,7 +43,10 @@ export default function PricingClient({
                 <p className="text-sm text-[var(--muted)]">{p.blurb}</p>
                 <div className="mt-4">
                   <span className="text-3xl font-bold">₱{price.toLocaleString()}</span>
-                  <span className="text-[var(--muted)]">/mo</span>
+                  <span className="text-[var(--muted)]">/year</span>
+                  <p className="mt-0.5 text-xs text-[var(--muted)]">
+                    One payment · covers your whole review year
+                  </p>
                 </div>
 
                 <ul className="mt-4 flex-1 space-y-2 text-sm">
@@ -77,7 +80,8 @@ export default function PricingClient({
 
         <p className="mt-6 text-center text-xs text-[var(--muted)]">
           Free plan: 1 daily or weekly practice exam per month — mock exams need a paid plan.
-          Exam allowances reset every month. Cancel anytime.
+          Paid plans are billed once a year, and exam allowances still reset on the 1st of
+          every month. No auto-charge — nothing renews unless you pay again.
         </p>
       </div>
     </main>

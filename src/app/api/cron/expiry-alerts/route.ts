@@ -5,9 +5,11 @@ import { sendEmail, emailLayout, emailConfigured, getUserEmail } from "@/lib/ema
 // Daily cron (see vercel.json). Emails students whose plan is expiring soon.
 // Billing is manual (one-time payments, no auto-charge) — these reminders are
 // the only nudge to actually pay again, unlike a Stripe-style auto-renewal.
-// Reminders fire when the whole number of days remaining is 7, 3, or 1 — so with
-// a once-daily run each student gets at most those three nudges per period.
-const REMIND_ON = new Set([7, 3, 1]);
+// Reminders fire when the whole number of days remaining hits one of these — so
+// with a once-daily run each student gets at most these nudges per period.
+// 30 days is here because plans are annual: a year after paying, a student needs
+// more than a week's warning to budget for the renewal.
+const REMIND_ON = new Set([30, 7, 3, 1]);
 const DAY = 24 * 60 * 60 * 1000;
 
 export async function GET(req: NextRequest) {

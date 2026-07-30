@@ -225,9 +225,9 @@ export default async function Home() {
                 <div className="text-right">
                   <span className="font-mono text-lg font-bold">
                     {"₱"}
-                    {p.monthly}
+                    {p.price}
                   </span>
-                  <span className="text-xs text-[var(--muted)]">/mo</span>
+                  <span className="text-xs text-[var(--muted)]">/year</span>
                 </div>
               </div>
             ))}

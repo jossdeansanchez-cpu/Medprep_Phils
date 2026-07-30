@@ -2,9 +2,19 @@
 // Billed as one-time PayMongo Payment Intents per period (not an
 // auto-recurring subscription — see src/lib/billing/paymongo.ts) — the
 // peso amount here is all that's needed, no external price/plan IDs.
+//
+// Plans are billed ANNUALLY: one payment covers a student's whole PLE review
+// season. Exam allowances still reset MONTHLY — see the "per month" feature
+// copy below and public.entitlement_period_start() in the database. Billing
+// period and quota window are deliberately separate concerns; deriving one
+// from the other is what broke when this moved off monthly billing.
 
 export type PlanTier = "free" | "basic" | "pro" | "max_pro";
 export type BillingInterval = "month" | "year";
+
+/** How much access one payment buys. Drives the DB period end and price copy. */
+export const BILLING_INTERVAL: BillingInterval = "year";
+export const BILLING_PERIOD_DAYS = 365;
 
 export const PLAN_TIERS: PlanTier[] = ["free", "basic", "pro", "max_pro"];
 export const TIER_RANK: Record<PlanTier, number> = {
@@ -18,7 +28,8 @@ export interface PlanDef {
   tier: PlanTier;
   name: string;
   blurb: string;
-  monthly: number; // pesos
+  /** Pesos for one full billing period — i.e. per year. */
+  price: number;
   features: string[];
   highlighted?: boolean;
 }
@@ -28,7 +39,7 @@ export const PLANS: PlanDef[] = [
     tier: "basic",
     name: "Basic",
     blurb: "Unlimited practice",
-    monthly: 499,
+    price: 499,
     features: [
       "Unlimited daily & weekly exams",
       "2 mock exams per month",
@@ -42,7 +53,7 @@ export const PLANS: PlanDef[] = [
     tier: "pro",
     name: "Pro",
     blurb: "Exam ready",
-    monthly: 699,
+    price: 699,
     highlighted: true,
     features: [
       "Everything in Basic",
@@ -55,7 +66,7 @@ export const PLANS: PlanDef[] = [
     tier: "max_pro",
     name: "Max Pro",
     blurb: "Everything, unlimited",
-    monthly: 799,
+    price: 799,
     features: [
       "Everything in Pro",
       "Unlimited mock exams",

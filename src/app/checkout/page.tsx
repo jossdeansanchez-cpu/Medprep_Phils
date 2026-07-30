@@ -30,11 +30,11 @@ export default async function CheckoutPage({
         <div className="glass p-6">
           <p className="text-sm font-medium text-[var(--primary)]">{planDef.name}</p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight">
-            ₱{planDef.monthly.toLocaleString()}
-            <span className="text-base font-normal text-[var(--muted)]">/mo</span>
+            ₱{planDef.price.toLocaleString()}
+            <span className="text-base font-normal text-[var(--muted)]">/year</span>
           </h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            One month of access. No auto-charge — you renew each month.
+            A full year of access. No auto-charge — you renew once a year.
           </p>
 
           {testMode && (

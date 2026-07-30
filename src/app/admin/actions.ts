@@ -19,7 +19,7 @@ export async function setStudentPlan(userId: string, plan: string) {
   const { error } = await supabase.rpc("admin_set_plan", {
     p_user_id: userId,
     p_plan: plan,
-    p_interval: "month",
+    p_interval: "year",
   });
   if (error) throw new Error(error.message);
   revalidatePath("/admin/students");

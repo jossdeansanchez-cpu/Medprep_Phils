@@ -16,8 +16,8 @@ export async function POST(req: NextRequest) {
 
   try {
     const intent = await createPaymentIntent({
-      amountCentavos: planDef.monthly * 100,
-      description: `MEDprep ${planDef.name} — 1 month`,
+      amountCentavos: planDef.price * 100,
+      description: `MEDprep ${planDef.name} — 1 year`,
       metadata: { user_id: user.id, plan },
     });
     return NextResponse.json({

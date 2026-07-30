@@ -8,7 +8,7 @@ import "server-only";
  * activation that isn't available yet, and only covers card/Maya anyway).
  * Payment Intents work today and cover GCash, QRPh, and card. Each
  * successful payment extends the student's `current_period_end` by one
- * month; renewal is manual, prompted by the existing reminder email.
+ * year; renewal is manual, prompted by the existing reminder email.
  */
 
 const BASE_URL = "https://api.paymongo.com/v1";
