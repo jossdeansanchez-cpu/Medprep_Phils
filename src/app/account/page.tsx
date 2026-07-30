@@ -70,7 +70,7 @@ export default async function AccountPage({
             <p className="mt-2 text-sm text-[var(--muted)]">
               {ent.entitled ? "Access ends" : "Access ended"} on{" "}
               {new Date(ent.currentPeriodEnd).toLocaleDateString()}. Billing is manual — pay
-              again anytime to extend your plan by a month.
+              again anytime to extend your plan by another year.
             </p>
           )}
 

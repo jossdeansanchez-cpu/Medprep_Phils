@@ -2,7 +2,7 @@ import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { retrievePaymentIntent, type PMPaymentIntent } from "@/lib/billing/paymongo";
 import { sendEmail, emailLayout, getUserEmail } from "@/lib/email";
-import type { PlanTier } from "@/lib/billing/plans";
+import { BILLING_INTERVAL, BILLING_PERIOD_DAYS, type PlanTier } from "@/lib/billing/plans";
 
 const DAY = 24 * 60 * 60 * 1000;
 
@@ -34,15 +34,17 @@ export async function applyPaymentIntentResult(intentId: string): Promise<{
       .eq("user_id", userId)
       .maybeSingle();
 
+    // Paying again while still active extends from the existing end date, so a
+    // student never loses time they already paid for.
     const base = existing?.current_period_end
       ? Math.max(new Date(existing.current_period_end).getTime(), Date.now())
       : Date.now();
-    const newPeriodEnd = new Date(base + 30 * DAY).toISOString();
+    const newPeriodEnd = new Date(base + BILLING_PERIOD_DAYS * DAY).toISOString();
 
     await db.from("subscriptions").upsert({
       user_id: userId,
       plan,
-      interval: "month",
+      interval: BILLING_INTERVAL,
       status: "active",
       paymongo_last_payment_id: latestPayment?.id ?? intentId,
       current_period_end: newPeriodEnd,
