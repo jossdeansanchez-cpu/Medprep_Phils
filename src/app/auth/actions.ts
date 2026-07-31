@@ -102,10 +102,14 @@ export async function requestPasswordReset(
 
   // Fallback while SMTP isn't configured: Supabase's built-in mailer. Delivery
   // is best-effort, so this is a stopgap rather than the intended path.
+  //
+  // Point straight at /reset-password rather than /auth/callback: this mailer
+  // hands the session back in the URL fragment, which a route handler cannot
+  // read. RecoverySession picks it up in the browser instead.
   const site = process.env.NEXT_PUBLIC_SITE_URL || "https://medprep-teal.vercel.app";
   const supabase = await createClient();
   await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${site}/auth/callback?next=/reset-password`,
+    redirectTo: `${site}/reset-password`,
   });
 
   return neutral;
