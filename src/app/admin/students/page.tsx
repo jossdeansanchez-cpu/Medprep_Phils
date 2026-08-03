@@ -57,10 +57,15 @@ function SubStatus({ s }: { s: StudentRow }) {
       <span className="badge whitespace-nowrap bg-[var(--primary)]/10 text-[var(--primary)]">
         {s.is_paid ? "Active · PayMongo" : "Active · manual"}
       </span>
-      {s.is_paid && s.current_period_end && (
+      {/* Manual grants now carry a real end date too, so show it either way —
+          a null date genuinely means the grant never lapses. */}
+      {s.current_period_end ? (
         <span className="text-xs text-[var(--muted)]">
-          renews {new Date(s.current_period_end).toLocaleDateString()}
+          {s.is_paid ? "renews" : "until"}{" "}
+          {new Date(s.current_period_end).toLocaleDateString()}
         </span>
+      ) : (
+        !s.is_paid && <span className="text-xs text-[var(--muted)]">no expiry</span>
       )}
     </span>
   );
