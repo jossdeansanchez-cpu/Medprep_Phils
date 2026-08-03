@@ -13,17 +13,30 @@ import type { OptionLabel, QuestionOption } from "@/lib/types";
 
 export type FormState = { error?: string; message?: string } | undefined;
 
-/** Admin: set a student's plan directly (comp, no PayMongo involvement). */
-export async function setStudentPlan(userId: string, plan: string) {
+/**
+ * Admin: set a student's plan directly, with how long it stays valid.
+ *
+ * For students who pay outside PayMongo (GCash straight to the admin). Pass
+ * `endsAt` as an ISO date, or null for a grant that never expires — the
+ * entitlement functions already read a null period end as "no expiry".
+ */
+export async function setStudentPlan(
+  userId: string,
+  plan: string,
+  endsAt: string | null = null
+): Promise<{ ok?: boolean; error?: string }> {
   await requireAdmin();
   const supabase = await createClient();
   const { error } = await supabase.rpc("admin_set_plan", {
     p_user_id: userId,
     p_plan: plan,
-    p_interval: "year",
+    p_ends_at: endsAt,
   });
-  if (error) throw new Error(error.message);
+  // Returned rather than thrown so the DB's own message (e.g. a validity date
+  // in the past) reaches the admin instead of a masked server-action error.
+  if (error) return { error: error.message };
   revalidatePath("/admin/students");
+  return { ok: true };
 }
 
 /**
