@@ -6,6 +6,7 @@ import { getEntitlements } from "@/lib/billing/entitlements";
 import { planLabel } from "@/lib/billing/plans";
 import { listMyDevices, deviceLabel, DEVICE_LIMITS } from "@/lib/devices";
 import { removeDevice } from "./actions";
+import DeleteAccount from "./DeleteAccount";
 import { applyPaymentIntentResult } from "@/lib/billing/paymongo-fulfillment";
 import { isIosApp } from "@/lib/platform/server";
 
@@ -146,6 +147,17 @@ export default async function AccountPage({
           <p className="mt-1 font-medium">{profile.full_name || "—"}</p>
           <p className="text-sm text-[var(--muted)]">Role: {profile.role}</p>
         </section>
+
+        {/* Account deletion has to be reachable from inside the app —
+            App Store Guideline 5.1.1(v). Admins are excluded server-side. */}
+        {profile.role !== "admin" && (
+          <section className="glass p-6">
+            <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Danger zone</p>
+            <div className="mt-2">
+              <DeleteAccount />
+            </div>
+          </section>
+        )}
       </div>
     </AppShell>
   );
