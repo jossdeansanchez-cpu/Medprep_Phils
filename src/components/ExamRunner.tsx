@@ -36,12 +36,14 @@ export default function ExamRunner({
   mode,
   deadlineMs,
   questions,
+  isIosApp = false,
 }: {
   attemptId: string;
   title: string;
   mode: ExamMode;
   deadlineMs: number | null;
   questions: RunnerQuestion[];
+  isIosApp?: boolean;
 }) {
   const isPractice = mode === "practice";
   const [index, setIndex] = useState(0);
@@ -291,9 +293,12 @@ export default function ExamRunner({
       {capMessage && (
         <div className="mb-4 rounded-2xl border border-[var(--primary)]/40 bg-[var(--primary)]/[0.08] p-4 text-center">
           <p className="font-semibold">{capMessage}</p>
-          <a href="/pricing" className="btn-primary mt-2 inline-flex">
-            See plans
-          </a>
+          {/* No route to a purchase inside the iOS app — Guideline 3.1.1. */}
+          {!isIosApp && (
+            <a href="/pricing" className="btn-primary mt-2 inline-flex">
+              See plans
+            </a>
+          )}
         </div>
       )}
 

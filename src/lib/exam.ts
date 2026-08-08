@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { planMessage } from "@/lib/plan-messages";
 import type { OptionLabel } from "@/lib/types";
 
 /** Build a fresh attempt from a template, then send the user into the runner. */
@@ -10,7 +11,9 @@ export async function startAttempt(templateId: string) {
   const { data, error } = await supabase.rpc("start_attempt", {
     p_template_id: templateId,
   });
-  if (error) throw new Error(error.message);
+  // Same rewrite as saveAnswer — the quota gates live in start_attempt and
+  // raise plan-marketing wording that must not reach the iOS app.
+  if (error) throw new Error(planMessage(error.message));
   redirect(`/exam/${data as string}`);
 }
 
@@ -65,7 +68,8 @@ export async function saveAnswer(
   });
   // Return the message (not throw) so gates like the free daily cap reach the
   // client even in production, where Next.js masks thrown server-action errors.
-  if (error) return { revealed: false, error: error.message };
+  // planMessage() strips the plan-marketing wording the DB raises.
+  if (error) return { revealed: false, error: planMessage(error.message) };
   return data as SaveAnswerResult;
 }
 

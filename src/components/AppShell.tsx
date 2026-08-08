@@ -7,6 +7,7 @@ import type { Profile } from "@/lib/types";
 import { getEntitlements } from "@/lib/billing/entitlements";
 import { checkDevice } from "@/lib/devices";
 import { getNotifications } from "@/lib/notifications";
+import { isIosApp } from "@/lib/platform/server";
 
 export default async function AppShell({
   profile,
@@ -22,10 +23,11 @@ export default async function AppShell({
   // All independent DB round trips fire together instead of one at a time —
   // this was the main source of the per-click lag between pages.
   const entPromise = getEntitlements();
-  const [device, ent, notifications] = await Promise.all([
+  const [device, ent, notifications, iosApp] = await Promise.all([
     checkDevice(),
     entPromise,
     getNotifications(entPromise),
+    isIosApp(),
   ]);
   if (!device.allowed) {
     return <DeviceLimitBlock maxDevices={device.maxDevices} currentDeviceId={device.deviceId} />;
@@ -43,10 +45,20 @@ export default async function AppShell({
   return (
     <div className="app-gradient safe-area min-h-[100dvh] p-2 sm:p-6">
       <div className="glass mx-auto max-w-6xl overflow-hidden lg:flex">
-        <Sidebar role={profile.role} name={profile.full_name} plan={plan} />
+        <Sidebar
+          role={profile.role}
+          name={profile.full_name}
+          plan={plan}
+          isIosApp={iosApp}
+        />
 
         <div className="min-w-0 flex-1 lg:border-l lg:border-white/50">
-          <MobileNav role={profile.role} name={profile.full_name} plan={plan} />
+          <MobileNav
+            role={profile.role}
+            name={profile.full_name}
+            plan={plan}
+            isIosApp={iosApp}
+          />
 
           <main className="px-4 py-5 sm:px-8 sm:py-6">
             {/* Topbar */}

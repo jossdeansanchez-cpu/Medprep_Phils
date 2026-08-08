@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { isIosAppClient } from "@/lib/platform";
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -28,6 +29,11 @@ export default function InstallPrompt() {
   const suppressed = pathname?.startsWith("/exam/") || pathname?.startsWith("/practice");
 
   useEffect(() => {
+    // Inside the iOS app this is nonsense — it's already installed, and
+    // "Tap Share, then Add to Home Screen" is the clearest possible tell to an
+    // App Review engineer that they're looking at a wrapped website.
+    if (isIosAppClient()) return;
+
     // Already installed? Never nag.
     const standalone =
       window.matchMedia("(display-mode: standalone)").matches ||

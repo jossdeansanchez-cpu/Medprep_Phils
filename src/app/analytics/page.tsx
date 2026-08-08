@@ -19,8 +19,14 @@ export default async function AnalyticsPage() {
       <AppShell profile={profile} greeting="Performance insights" title="Analytics">
         <div className="mx-auto max-w-xl">
           <UpgradeGate
-            title="Analytics is a Max Pro feature"
-            body="Upgrade to Max Pro to track your scores over time and spot weak subjects."
+            web={{
+              title: "Analytics is a Max Pro feature",
+              body: "Upgrade to Max Pro to track your scores over time and spot weak subjects.",
+            }}
+            ios={{
+              title: "Analytics isn't included in your plan",
+              body: "Tracking scores over time and weak-subject insights come with the Max Pro plan.",
+            }}
           />
         </div>
       </AppShell>

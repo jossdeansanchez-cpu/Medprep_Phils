@@ -6,6 +6,7 @@ import ExpiredAttempt from "@/components/ExpiredAttempt";
 import DeviceLimitBlock from "@/components/DeviceLimitBlock";
 import { checkDevice } from "@/lib/devices";
 import { attemptDeadlineMs, isAttemptExpired } from "@/lib/attempt-expiry";
+import { isIosApp } from "@/lib/platform/server";
 import type { ExamMode, OptionLabel, QuestionOption } from "@/lib/types";
 
 type RpcQuestion = {
@@ -94,6 +95,7 @@ export default async function ExamPage({
       mode={template.mode}
       deadlineMs={deadlineMs}
       questions={rows}
+      isIosApp={await isIosApp()}
     />
   );
 }

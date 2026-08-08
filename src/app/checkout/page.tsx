@@ -1,6 +1,7 @@
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { isIosApp } from "@/lib/platform/server";
 import { PLANS, PLAN_TIERS, type PlanTier } from "@/lib/billing/plans";
 import CheckoutForm from "./CheckoutForm";
 
@@ -9,6 +10,9 @@ export default async function CheckoutPage({
 }: {
   searchParams: Promise<{ plan?: string }>;
 }) {
+  // App Store Guideline 3.1.1 — no purchase flow inside the iOS app.
+  if (await isIosApp()) notFound();
+
   const profile = await getCurrentProfile();
   if (!profile) redirect("/login?redirect=/pricing");
   const supabase = await createClient();
