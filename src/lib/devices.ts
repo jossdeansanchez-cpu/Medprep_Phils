@@ -1,7 +1,16 @@
 import { cookies, headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { currentPlatform } from "@/lib/platform/server";
 import type { PlanTier } from "@/lib/billing/plans";
 
+/**
+ * Browser devices allowed per plan. Mirrors public.device_limit() — the
+ * database is the real gate; this copy only labels the /account page.
+ *
+ * The iOS app is counted in a separate pool of its own (one slot, every tier)
+ * so installing it never costs a student a browser slot. See migration
+ * 0034_device_platform.sql.
+ */
 export const DEVICE_LIMITS: Record<PlanTier, number> = {
   free: 1,
   basic: 1,
@@ -28,6 +37,8 @@ export async function checkDevice(): Promise<DeviceCheck> {
   const { data } = await supabase.rpc("register_device", {
     p_device: deviceId,
     p_user_agent: ua,
+    // Which pool this device counts against — the app has its own.
+    p_platform: await currentPlatform(),
   });
   const row = Array.isArray(data) ? data[0] : data;
   return {
