@@ -32,8 +32,14 @@ export default async function ResourcesPage() {
       <AppShell profile={profile} greeting="Study library" title="Resources">
         <div className="mx-auto max-w-xl">
           <UpgradeGate
-            title="Resources come with any paid plan"
-            body="Subscribe to unlock curated books, PDF references and review exams — starting with Basic."
+            web={{
+              title: "Resources come with any paid plan",
+              body: "Subscribe to unlock curated books, PDF references and review exams — starting with Basic.",
+            }}
+            ios={{
+              title: "Resources aren't included in your plan",
+              body: "Curated books, PDF references and review exams come with the Basic, Pro and Max Pro plans.",
+            }}
           />
         </div>
       </AppShell>

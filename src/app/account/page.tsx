@@ -7,6 +7,7 @@ import { planLabel } from "@/lib/billing/plans";
 import { listMyDevices, deviceLabel, DEVICE_LIMITS } from "@/lib/devices";
 import { removeDevice } from "./actions";
 import { applyPaymentIntentResult } from "@/lib/billing/paymongo-fulfillment";
+import { isIosApp } from "@/lib/platform/server";
 
 export default async function AccountPage({
   searchParams,
@@ -32,6 +33,7 @@ export default async function AccountPage({
 
   const ent = await getEntitlements();
   const isPaid = ent.plan !== "free";
+  const iosApp = await isIosApp();
   const devices = await listMyDevices();
   const maxDevices = profile.role === "admin" ? null : DEVICE_LIMITS[ent.plan];
 
@@ -69,25 +71,29 @@ export default async function AccountPage({
           {ent.currentPeriodEnd && isPaid && (
             <p className="mt-2 text-sm text-[var(--muted)]">
               {ent.entitled ? "Access ends" : "Access ended"} on{" "}
-              {new Date(ent.currentPeriodEnd).toLocaleDateString()}. Billing is manual — pay
-              again anytime to extend your plan by another year.
+              {new Date(ent.currentPeriodEnd).toLocaleDateString()}.
+              {/* The renewal sentence describes buying outside the App Store,
+                  which Guideline 3.1.1 forbids mentioning in the iOS app. */}
+              {!iosApp && " Billing is manual — pay again anytime to extend your plan by another year."}
             </p>
           )}
 
-          <div className="mt-5 flex gap-3">
-            {isPaid ? (
-              <Link href={`/checkout?plan=${ent.plan}`} className="btn-primary">
-                Renew now
+          {!iosApp && (
+            <div className="mt-5 flex gap-3">
+              {isPaid ? (
+                <Link href={`/checkout?plan=${ent.plan}`} className="btn-primary">
+                  Renew now
+                </Link>
+              ) : (
+                <Link href="/pricing" className="btn-primary">
+                  Upgrade
+                </Link>
+              )}
+              <Link href="/pricing" className="btn-ghost">
+                View plans
               </Link>
-            ) : (
-              <Link href="/pricing" className="btn-primary">
-                Upgrade
-              </Link>
-            )}
-            <Link href="/pricing" className="btn-ghost">
-              View plans
-            </Link>
-          </div>
+            </div>
+          )}
         </section>
 
         <section className="glass p-6">

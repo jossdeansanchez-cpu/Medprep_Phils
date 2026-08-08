@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { startAttempt } from "@/lib/exam";
 import { categoryLabel } from "@/lib/categories";
+import { isIosApp } from "@/lib/platform/server";
 import type { ExamTemplate } from "@/lib/types";
 
 export function isRecent(createdAt: string): boolean {
@@ -13,13 +14,14 @@ export function isRecent(createdAt: string): boolean {
  * shows an upgrade CTA instead of Start, matching the server-side quota in
  * start_attempt so they never get a raw error.
  */
-export default function ExamCard({
+export default async function ExamCard({
   t,
   remainingForKind,
 }: {
   t: ExamTemplate;
   remainingForKind: number | null;
 }) {
+  const iosApp = await isIosApp();
   const isMock = t.category === "mock_exam";
   const locked = remainingForKind !== null && remainingForKind <= 0;
   const showCount = remainingForKind !== null && remainingForKind > 0 && remainingForKind <= 3;
@@ -48,7 +50,18 @@ export default function ExamCard({
           · {t.time_limit_minutes ? `${t.time_limit_minutes} min` : "untimed"}
         </p>
       </div>
-      {locked ? (
+      {locked && iosApp ? (
+        // States the limit and stops. No CTA, no mention that a purchase
+        // exists elsewhere — App Store Guideline 3.1.1.
+        <button
+          type="button"
+          disabled
+          className="btn-outline w-full whitespace-nowrap"
+          title="Not included in your current plan"
+        >
+          Not available on your plan
+        </button>
+      ) : locked ? (
         <Link href="/pricing" className="btn-primary w-full whitespace-nowrap">
           ✦ {isMock ? "Unlock mock exams" : "Upgrade to continue"}
         </Link>

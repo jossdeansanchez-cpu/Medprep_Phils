@@ -13,14 +13,18 @@ export default function Sidebar({
   role,
   name,
   plan = "free",
+  isIosApp = false,
 }: {
   role: Role;
   name: string | null;
   plan?: PlanTier;
+  isIosApp?: boolean;
 }) {
   const pathname = usePathname();
   const visible = visibleNavItems(role);
-  const showUpgrade = plan === "free" || plan === "basic";
+  // Never in the iOS app: App Store Guideline 3.1.1 forbids pointing at a
+  // purchase made outside Apple's IAP.
+  const showUpgrade = !isIosApp && (plan === "free" || plan === "basic");
 
   return (
     <aside className="hidden w-60 shrink-0 flex-col px-4 py-6 lg:flex">

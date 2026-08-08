@@ -12,15 +12,18 @@ export default function MobileNav({
   role,
   name,
   plan = "free",
+  isIosApp = false,
 }: {
   role: Role;
   name: string | null;
   plan?: PlanTier;
+  isIosApp?: boolean;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const visible = visibleNavItems(role);
-  const showUpgrade = plan === "free" || plan === "basic";
+  // See Sidebar — suppressed in the iOS app for Guideline 3.1.1.
+  const showUpgrade = !isIosApp && (plan === "free" || plan === "basic");
 
   // Close the drawer whenever the route changes.
   useEffect(() => {
