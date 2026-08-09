@@ -30,6 +30,9 @@ export default async function AdminOverview() {
     supabase
       .from("exam_templates")
       .select("*", { count: "exact", head: true })
+      // Count the admin's own exams only — students' personal presets share
+      // this table and would otherwise inflate the tile.
+      .is("owner_id", null)
       .is("deleted_at", null),
     supabase.rpc("admin_question_coverage"),
   ]);

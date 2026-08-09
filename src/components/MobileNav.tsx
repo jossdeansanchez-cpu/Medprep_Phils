@@ -21,7 +21,7 @@ export default function MobileNav({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const visible = visibleNavItems(role);
+  const visible = visibleNavItems(role, plan);
   // See Sidebar — suppressed in the iOS app for Guideline 3.1.1.
   const showUpgrade = !isIosApp && (plan === "free" || plan === "basic");
 

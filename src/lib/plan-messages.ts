@@ -30,6 +30,12 @@ const RULES: Rule[] = [
     match: /free plan includes/i,
     text: "You've used the exams included in your plan this month. They reset on the 1st.",
   },
+  {
+    // 'Custom exams need a Pro plan. Upgrade to build your own.' — raised by
+    // assert_can_manage_presets() and by the preset branch of start_attempt.
+    match: /custom exams need a pro plan/i,
+    text: "Quiz Maker isn't included in your current plan.",
+  },
 ];
 
 /**

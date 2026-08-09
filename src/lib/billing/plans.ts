@@ -57,6 +57,7 @@ export const PLANS: PlanDef[] = [
     highlighted: true,
     features: [
       "Everything in Basic",
+      "Quiz Maker — build your own custom-length exams",
       "10 mock exams per month",
       "Full results & per-subject review",
       "Up to 2 devices",

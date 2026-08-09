@@ -558,7 +558,12 @@ export async function getEligibleTemplatesForQuestion(questionId: string): Promi
   const { data: templates } = await supabase
     .from("exam_templates")
     .select("id, title, questions_per_subject, subject_ids")
-    .eq("category", question.category);
+    .eq("category", question.category)
+    // Only the admin's own live exams are pinnable. Students' personal presets
+    // share this table, and listing them here would leak their titles and let
+    // an admin pin questions into someone's private exam.
+    .is("owner_id", null)
+    .is("deleted_at", null);
 
   const eligible = (templates ?? []).filter(
     (t) => !t.subject_ids || t.subject_ids.length === 0 || t.subject_ids.includes(question.subject_id)
