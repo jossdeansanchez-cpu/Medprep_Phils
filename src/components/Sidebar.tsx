@@ -21,7 +21,7 @@ export default function Sidebar({
   isIosApp?: boolean;
 }) {
   const pathname = usePathname();
-  const visible = visibleNavItems(role);
+  const visible = visibleNavItems(role, plan);
   // Never in the iOS app: App Store Guideline 3.1.1 forbids pointing at a
   // purchase made outside Apple's IAP.
   const showUpgrade = !isIosApp && (plan === "free" || plan === "basic");

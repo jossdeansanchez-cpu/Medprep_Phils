@@ -13,6 +13,9 @@ export default async function ExamsPage() {
     supabase
       .from("exam_templates")
       .select("*")
+      // Students' personal presets live in this table too. Unlike every
+      // student-facing query, this one has no is_published filter to hide them.
+      .is("owner_id", null)
       .is("deleted_at", null)
       .order("created_at", { ascending: false }),
     supabase.from("subjects").select("*").order("order"),

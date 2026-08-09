@@ -65,6 +65,12 @@ export interface ExamTemplate {
   subject_ids: string[] | null;
   is_published: boolean;
   created_by: string | null;
+  /**
+   * NULL for admin-authored exams. Set to a student's id when the row is a
+   * personal preset they built — those are never published, and are readable
+   * only by their owner.
+   */
+  owner_id: string | null;
   created_at: string;
 }
 

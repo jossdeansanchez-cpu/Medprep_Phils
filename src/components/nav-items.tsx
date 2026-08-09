@@ -1,10 +1,13 @@
 import type { Role } from "@/lib/types";
+import { TIER_RANK, type PlanTier } from "@/lib/billing/plans";
 
 export type NavItem = {
   href: string;
   label: string;
   icon: React.ReactNode;
   adminOnly?: boolean;
+  /** Hidden below this plan. Admins always see it, so they can support it. */
+  minPlan?: PlanTier;
   exact?: boolean;
 };
 
@@ -27,10 +30,24 @@ export const navItems: NavItem[] = [
   {
     href: "/exams",
     label: "Exams",
+    // Exact, or the prefix match would light this up on /exams/presets too and
+    // both exam entries would read as active at once.
+    exact: true,
     icon: (
       <svg className={ICON} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M4 5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
         <path d="M13 3v5h5" />
+      </svg>
+    ),
+  },
+  {
+    href: "/exams/presets",
+    label: "Quiz Maker",
+    minPlan: "pro",
+    icon: (
+      <svg className={ICON} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M4 5a2 2 0 0 1 2-2h7l5 5v11a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2z" />
+        <path d="M9 13h6M12 10v6" />
       </svg>
     ),
   },
@@ -160,8 +177,12 @@ export const navItems: NavItem[] = [
   },
 ];
 
-export function visibleNavItems(role: Role): NavItem[] {
-  return navItems.filter((i) => !i.adminOnly || role === "admin");
+export function visibleNavItems(role: Role, plan: PlanTier = "free"): NavItem[] {
+  return navItems.filter((i) => {
+    if (i.adminOnly && role !== "admin") return false;
+    if (i.minPlan && role !== "admin" && TIER_RANK[plan] < TIER_RANK[i.minPlan]) return false;
+    return true;
+  });
 }
 
 export function isActive(pathname: string, item: NavItem): boolean {
