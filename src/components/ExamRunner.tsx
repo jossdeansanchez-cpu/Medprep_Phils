@@ -2,8 +2,9 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { saveAnswer, submitAttempt } from "@/lib/exam";
+import { saveAnswer, submitAttempt, revealAnswer } from "@/lib/exam";
 import ExpiredAttempt from "@/components/ExpiredAttempt";
+import { categoryLabel, type ExamCategory } from "@/lib/categories";
 import type { ExamMode, OptionLabel, QuestionOption } from "@/lib/types";
 
 type RunnerQuestion = {
@@ -13,6 +14,8 @@ type RunnerQuestion = {
   stem: string;
   options: QuestionOption[];
   selected_label: OptionLabel | null;
+  /** Already revealed in an earlier sitting — stays locked across a resume. */
+  revealed: boolean;
 };
 
 type Reveal = {
@@ -34,6 +37,7 @@ export default function ExamRunner({
   attemptId,
   title,
   mode,
+  category,
   deadlineMs,
   questions,
   isIosApp = false,
@@ -41,18 +45,34 @@ export default function ExamRunner({
   attemptId: string;
   title: string;
   mode: ExamMode;
+  category: ExamCategory;
   deadlineMs: number | null;
   questions: RunnerQuestion[];
   isIosApp?: boolean;
 }) {
   const isPractice = mode === "practice";
+  // "Show answer" is for study, not simulation — a mock exam behaves like the
+  // real PLE and gives nothing away until it's submitted. Keyed off category
+  // rather than `mode`, which is 'mock' on every template ever created.
+  // reveal_answer enforces the same rule server-side; this only hides the UI.
+  const canReveal = category !== "mock_exam";
   const [index, setIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, OptionLabel>>(() =>
     Object.fromEntries(
       questions.filter((q) => q.selected_label).map((q) => [q.attempt_question_id, q.selected_label!])
     )
   );
+  // Two pieces of state, because they can disagree after a resume: `locked`
+  // is every item whose answer is frozen because it was revealed at some
+  // point, while `reveals` only holds rationale actually fetched this session.
+  // A resumed exam starts locked-but-unloaded, and tapping Show answer refills
+  // it (reveal_answer is idempotent).
   const [reveals, setReveals] = useState<Record<string, Reveal>>({});
+  const [locked, setLocked] = useState<Set<string>>(
+    () => new Set(questions.filter((q) => q.revealed).map((q) => q.attempt_question_id))
+  );
+  const [revealing, setRevealing] = useState(false);
+  const [revealError, setRevealError] = useState<string | null>(null);
   const [remaining, setRemaining] = useState<number | null>(
     deadlineMs ? deadlineMs - Date.now() : null
   );
@@ -123,32 +143,49 @@ export default function ExamRunner({
   async function choose(label: OptionLabel) {
     if (!q) return;
     if (capMessage) return; // free daily cap hit — stop answering
-    if (isPractice && reveals[q.attempt_question_id]) return; // locked after reveal
+    if (locked.has(q.attempt_question_id)) return; // answer frozen by a reveal
     const id = q.attempt_question_id;
+    const previous = answers[id];
     setAnswers((a) => ({ ...a, [id]: label }));
     try {
       const res = await saveAnswer(id, label);
       if (res.error) {
-        rollback(id);
+        // Restore the prior choice rather than clearing it — changing an answer
+        // that the server rejects shouldn't lose the one already recorded.
+        if (previous) setAnswers((a) => ({ ...a, [id]: previous }));
+        else rollback(id);
         setCapMessage(res.error);
-        return;
-      }
-      if (res.revealed) {
-        setReveals((r) => ({
-          ...r,
-          [id]: {
-            is_correct: !!res.is_correct,
-            correct_label: res.correct_label as OptionLabel,
-            explanation: res.explanation ?? null,
-          },
-        }));
       }
     } catch {
-      rollback(id);
+      if (previous) setAnswers((a) => ({ ...a, [id]: previous }));
+      else rollback(id);
+    }
+  }
+
+  /** Show answer: fetch the correct option and rationale, and freeze the item. */
+  async function showAnswer() {
+    if (!q || revealing) return;
+    const id = q.attempt_question_id;
+    setRevealing(true);
+    setRevealError(null);
+    try {
+      const res = await revealAnswer(id);
+      if ("error" in res && res.error) {
+        setRevealError(res.error);
+        return;
+      }
+      const r = res as Reveal;
+      setReveals((prev) => ({ ...prev, [id]: r }));
+      setLocked((prev) => new Set(prev).add(id));
+    } catch {
+      setRevealError("Couldn't load the answer — check your connection and try again.");
+    } finally {
+      setRevealing(false);
     }
   }
 
   const reveal = q ? reveals[q.attempt_question_id] : undefined;
+  const isLocked = q ? locked.has(q.attempt_question_id) : false;
   const selected = q ? answers[q.attempt_question_id] : undefined;
   const lowTime = remaining != null && remaining < 60_000;
 
@@ -242,7 +279,9 @@ export default function ExamRunner({
         <div className="min-w-0 flex-1">
           <h1 className="truncate font-semibold leading-tight">{title}</h1>
           <p className="text-xs text-[var(--muted)]">
-            {isPractice ? "Study mode" : "Mock exam"} · {answeredCount}/{questions.length} answered
+            {/* Was mode-driven, which labelled every exam "Mock exam" — `mode`
+                is 'mock' on all of them. Category is what students recognise. */}
+            {categoryLabel(category)} · {answeredCount}/{questions.length} answered
           </p>
         </div>
 
@@ -409,7 +448,7 @@ export default function ExamRunner({
               <button
                 key={opt.label}
                 onClick={() => choose(opt.label)}
-                disabled={!!reveal}
+                disabled={isLocked}
                 className={`flex w-full items-start gap-3 rounded-lg border px-3 py-2.5 text-left text-sm transition-colors disabled:cursor-default ${
                   isCorrect
                     ? "border-[var(--primary)] bg-[var(--primary)]/10"
@@ -427,6 +466,30 @@ export default function ExamRunner({
           })}
         </div>
 
+        {/* Show answer — practice only, and only once they've committed to an
+            answer. Revealing freezes the item, so say so before they tap. */}
+        {canReveal && !reveal && (
+          <div className="mt-4">
+            <button
+              type="button"
+              onClick={showAnswer}
+              disabled={!selected || revealing}
+              className="btn-outline w-full text-sm disabled:opacity-50"
+            >
+              {revealing ? "Loading…" : "Show answer"}
+            </button>
+            <p className="mt-1.5 text-center text-xs text-[var(--muted)]">
+              {selected
+                ? "You won't be able to change your answer afterwards."
+                : "Pick an answer first."}
+            </p>
+          </div>
+        )}
+
+        {revealError && (
+          <p className="mt-2 text-center text-sm text-[var(--danger)]">{revealError}</p>
+        )}
+
         {reveal && (
           <div className="mt-4 rounded-lg bg-black/[0.03] p-3 text-sm">
             <p className="font-medium">
@@ -438,8 +501,14 @@ export default function ExamRunner({
                 </span>
               )}
             </p>
-            {reveal.explanation && (
-              <p className="mt-1 text-[var(--muted)]">{reveal.explanation}</p>
+            {reveal.explanation ? (
+              <p className="mt-1 whitespace-pre-wrap text-[var(--muted)]">
+                {reveal.explanation}
+              </p>
+            ) : (
+              <p className="mt-1 text-[var(--muted)]">
+                No rationale has been written for this question yet.
+              </p>
             )}
           </div>
         )}

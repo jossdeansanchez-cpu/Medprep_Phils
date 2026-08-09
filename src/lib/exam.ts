@@ -56,6 +56,46 @@ export type SaveAnswerResult = {
   error?: string;
 };
 
+export type RevealResult = {
+  is_correct: boolean;
+  correct_label: OptionLabel;
+  explanation: string | null;
+  error?: string;
+};
+
+/**
+ * "Show answer" — the correct option and its rationale, mid-exam.
+ *
+ * Daily and weekly practice only; reveal_answer refuses on a mock exam, which
+ * is why the gate lives in the database rather than the runner. Hiding it in
+ * the UI alone would still ship every answer to the browser, where a mock-exam
+ * student could read them out of the network response.
+ *
+ * Revealing locks the item — see the note in migration 0036 — so the student
+ * can't reveal, correct themselves, and walk away with a meaningless score.
+ */
+export async function revealAnswer(
+  attemptQuestionId: string
+): Promise<RevealResult | { error: string }> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("reveal_answer", {
+    p_attempt_question_id: attemptQuestionId,
+  });
+  // Returned, not thrown: Next.js masks thrown server-action errors in
+  // production, and these messages are all actionable ("pick an answer first").
+  if (error) return { error: planMessage(error.message) };
+  const row = data as {
+    is_correct: boolean;
+    correct_label: OptionLabel;
+    explanation: string | null;
+  };
+  return {
+    is_correct: row.is_correct,
+    correct_label: row.correct_label,
+    explanation: row.explanation ?? null,
+  };
+}
+
 /** Record a selection. In practice mode the response reveals the answer. */
 export async function saveAnswer(
   attemptQuestionId: string,

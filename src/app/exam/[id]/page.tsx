@@ -8,6 +8,7 @@ import { checkDevice } from "@/lib/devices";
 import { attemptDeadlineMs, isAttemptExpired } from "@/lib/attempt-expiry";
 import { isIosApp } from "@/lib/platform/server";
 import type { ExamMode, OptionLabel, QuestionOption } from "@/lib/types";
+import type { ExamCategory } from "@/lib/categories";
 
 type RpcQuestion = {
   attempt_question_id: string;
@@ -18,6 +19,8 @@ type RpcQuestion = {
   stem: string;
   options: QuestionOption[];
   selected_label: OptionLabel | null;
+  /** Already used "Show answer" — the item stays locked across a resume. */
+  revealed: boolean;
 };
 
 export default async function ExamPage({
@@ -39,7 +42,9 @@ export default async function ExamPage({
   // Attempt (owner-scoped via RLS) + its template settings.
   const { data: attempt } = await supabase
     .from("exam_attempts")
-    .select("id, status, started_at, template_id, exam_templates(title, mode, time_limit_minutes)")
+    .select(
+      "id, status, started_at, template_id, exam_templates(title, mode, category, time_limit_minutes)"
+    )
     .eq("id", id)
     .single();
 
@@ -51,6 +56,7 @@ export default async function ExamPage({
   const template = attempt.exam_templates as unknown as {
     title: string;
     mode: ExamMode;
+    category: ExamCategory;
     time_limit_minutes: number | null;
   };
 
@@ -93,6 +99,7 @@ export default async function ExamPage({
       attemptId={id}
       title={template.title}
       mode={template.mode}
+      category={template.category}
       deadlineMs={deadlineMs}
       questions={rows}
       isIosApp={await isIosApp()}
