@@ -73,6 +73,10 @@ export default function ExamRunner({
   );
   const [revealing, setRevealing] = useState(false);
   const [revealError, setRevealError] = useState<string | null>(null);
+  // Both keyed by attempt_question_id rather than being plain booleans, so
+  // paging to another question clears them without an effect to tidy up.
+  const [confirmRevealFor, setConfirmRevealFor] = useState<string | null>(null);
+  const [answerFirstFor, setAnswerFirstFor] = useState<string | null>(null);
   const [remaining, setRemaining] = useState<number | null>(
     deadlineMs ? deadlineMs - Date.now() : null
   );
@@ -146,6 +150,7 @@ export default function ExamRunner({
     if (locked.has(q.attempt_question_id)) return; // answer frozen by a reveal
     const id = q.attempt_question_id;
     const previous = answers[id];
+    setAnswerFirstFor(null); // they've just answered, so the nudge is stale
     setAnswers((a) => ({ ...a, [id]: label }));
     try {
       const res = await saveAnswer(id, label);
@@ -162,7 +167,23 @@ export default function ExamRunner({
     }
   }
 
-  /** Show answer: fetch the correct option and rationale, and freeze the item. */
+  /**
+   * First tap of Show answer. Nudges them to answer if they haven't, otherwise
+   * asks for confirmation — revealing is irreversible, so it shouldn't be one
+   * stray tap away, especially on a phone.
+   */
+  function requestReveal() {
+    if (!q) return;
+    setRevealError(null);
+    if (!answers[q.attempt_question_id]) {
+      setAnswerFirstFor(q.attempt_question_id);
+      return;
+    }
+    setAnswerFirstFor(null);
+    setConfirmRevealFor(q.attempt_question_id);
+  }
+
+  /** Confirmed: fetch the correct option and rationale, and freeze the item. */
   async function showAnswer() {
     if (!q || revealing) return;
     const id = q.attempt_question_id;
@@ -177,6 +198,7 @@ export default function ExamRunner({
       const r = res as Reveal;
       setReveals((prev) => ({ ...prev, [id]: r }));
       setLocked((prev) => new Set(prev).add(id));
+      setConfirmRevealFor(null);
     } catch {
       setRevealError("Couldn't load the answer — check your connection and try again.");
     } finally {
@@ -467,22 +489,54 @@ export default function ExamRunner({
         </div>
 
         {/* Show answer — practice only, and only once they've committed to an
-            answer. Revealing freezes the item, so say so before they tap. */}
+            answer. Two taps on purpose: revealing locks the item for good, and
+            an accidental brush on a phone shouldn't cost them the question. */}
         {canReveal && !reveal && (
           <div className="mt-4">
-            <button
-              type="button"
-              onClick={showAnswer}
-              disabled={!selected || revealing}
-              className="btn-outline w-full text-sm disabled:opacity-50"
-            >
-              {revealing ? "Loading…" : "Show answer"}
-            </button>
-            <p className="mt-1.5 text-center text-xs text-[var(--muted)]">
-              {selected
-                ? "You won't be able to change your answer afterwards."
-                : "Pick an answer first."}
-            </p>
+            {confirmRevealFor === q.attempt_question_id ? (
+              <div className="pop-in rounded-lg border border-[var(--border)] bg-black/[0.02] p-4">
+                <p className="text-sm font-medium">Show the answer for this question?</p>
+                <p className="mt-1 text-sm text-[var(--muted)]">
+                  Your answer is locked in as soon as you see it — you won&apos;t be
+                  able to change it afterwards.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={showAnswer}
+                    disabled={revealing}
+                    className="btn-primary text-sm disabled:opacity-50"
+                  >
+                    {revealing ? "Loading…" : "Yes, show the answer"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setConfirmRevealFor(null)}
+                    disabled={revealing}
+                    className="btn-outline text-sm"
+                  >
+                    No, keep going
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <>
+                {/* Deliberately not disabled when unanswered: a dead grey button
+                    explains nothing. Tapping it says what to do instead. */}
+                <button
+                  type="button"
+                  onClick={requestReveal}
+                  className="btn-outline w-full text-sm"
+                >
+                  Show answer
+                </button>
+                {answerFirstFor === q.attempt_question_id && (
+                  <p className="pop-in mt-2 rounded-lg bg-amber-50 px-3 py-2 text-center text-sm text-amber-800">
+                    Choose your answer first — then you can see the rationale.
+                  </p>
+                )}
+              </>
+            )}
           </div>
         )}
 
