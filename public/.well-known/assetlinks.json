@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.medprepacad.app",
+      "sha256_cert_fingerprints": [
+        "B0:FA:DF:75:33:FF:84:5F:6A:C5:12:03:A4:60:8D:68:CE:BD:45:4E:70:62:D1:C6:3E:42:D1:C3:E6:38:9D:90",
+        "8A:EF:C1:71:82:26:47:5C:84:42:DA:16:11:02:82:2E:A8:7A:17:1A:38:5A:EF:04:42:79:95:08:F2:58:41:7B"
+      ]
+    }
+  }
+]
