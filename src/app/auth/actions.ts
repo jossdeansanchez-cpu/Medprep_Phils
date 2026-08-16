@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createRecoveryLink } from "@/lib/auth/recovery-link";
 import { sendEmail, emailLayout, emailConfigured } from "@/lib/email";
+import { coerceTrack } from "@/lib/tracks";
 
 export type AuthState = { error?: string; message?: string } | undefined;
 
@@ -26,6 +27,7 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const fullName = String(formData.get("full_name") ?? "").trim();
+  const track = coerceTrack(formData.get("track"));
 
   if (password.length < 6) return { error: "Password must be at least 6 characters." };
   if (!email.includes("@")) return { error: "Please enter a valid email address." };
@@ -33,12 +35,15 @@ export async function signUp(_prev: AuthState, formData: FormData): Promise<Auth
   // Create the account already email-confirmed (server-side, service role) so the
   // student can sign in immediately. This avoids depending on confirmation-email
   // delivery, which is unreliable on Supabase's built-in mailer.
+  //
+  // `track` rides along in user_metadata because public.handle_new_user() reads
+  // the profile row's values from there — no second write after signup.
   const admin = createAdminClient();
   const { error: createError } = await admin.auth.admin.createUser({
     email,
     password,
     email_confirm: true,
-    user_metadata: { full_name: fullName },
+    user_metadata: { full_name: fullName, track },
   });
   if (createError) {
     const msg = /already.*registered|already been registered|duplicate/i.test(createError.message)

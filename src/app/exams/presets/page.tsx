@@ -53,9 +53,10 @@ export default async function PresetsPage() {
         .from("exam_templates")
         .select("*")
         .eq("owner_id", profile.id)
+        .eq("track", profile.track)
         .is("deleted_at", null)
         .order("created_at", { ascending: false }),
-      supabase.from("subjects").select("*").order("order"),
+      supabase.from("subjects").select("*").eq("track", profile.track).order("order"),
       // The student-callable twin of admin_question_coverage — public.questions
       // is admin-only RLS, so without this the form has no idea how big the
       // pool is.

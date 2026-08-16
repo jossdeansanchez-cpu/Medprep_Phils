@@ -8,6 +8,7 @@ import {
   CATEGORY_LABELS,
   type ExamCategory,
 } from "@/lib/categories";
+import { TRACK_ORDER, TRACK_LABELS, coerceTrack } from "@/lib/tracks";
 import type { QuestionOption, Subject } from "@/lib/types";
 
 type QRow = {
@@ -28,31 +29,46 @@ function isCategory(v: string | undefined): v is ExamCategory {
 export default async function QuestionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ subject?: string; category?: string }>;
+  searchParams: Promise<{ subject?: string; category?: string; track?: string }>;
 }) {
-  const { subject, category } = await searchParams;
+  const { subject, category, track } = await searchParams;
   const supabase = await createClient();
+
+  // Each track has its own bank, so one is always selected rather than showing
+  // both interleaved. PLE is the default because it's the older, larger bank.
+  const activeTrack = coerceTrack(track);
 
   const { data: subjectsData } = await supabase.from("subjects").select("*").order("order");
   const subjects = (subjectsData ?? []) as Subject[];
-  const activeSubject = subjects.find((s) => s.slug === subject);
+  const trackSubjects = subjects.filter((s) => s.track === activeTrack);
+  // Slugs are unique per track, not globally, so the track has to narrow this.
+  const activeSubject = trackSubjects.find((s) => s.slug === subject);
   const activeCategory = isCategory(category) ? category : undefined;
 
-  // Preserve the other filter when building a filter link.
-  const linkWith = (next: { subject?: string; category?: string }) => {
+  // Preserve the other filters when building a filter link.
+  const linkWith = (next: { subject?: string; category?: string; track?: string }) => {
     const params = new URLSearchParams();
-    const sub = next.subject ?? activeSubject?.slug;
+    // Switching track invalidates the subject filter — that subject belongs to
+    // the track being left.
+    const switchingTrack = next.track != null && next.track !== activeTrack;
+    const sub = switchingTrack ? "" : (next.subject ?? activeSubject?.slug);
     const cat = next.category ?? activeCategory;
+    const trk = next.track ?? activeTrack;
     if (sub) params.set("subject", sub);
     if (cat) params.set("category", cat);
+    if (trk) params.set("track", trk);
     const qs = params.toString();
     return `/admin/questions${qs ? `?${qs}` : ""}`;
   };
 
   let query = supabase
     .from("questions")
-    .select("id, stem, options, correct_label, is_active, category, created_at, subjects(name)")
+    // !inner so the track filter on the joined row actually restricts the result.
+    .select(
+      "id, stem, options, correct_label, is_active, category, created_at, subjects!inner(name, track)"
+    )
     .is("deleted_at", null) // hide deleted questions; their row is kept for history
+    .eq("subjects.track", activeTrack)
     .order("created_at", { ascending: false })
     .limit(300);
   if (activeSubject) query = query.eq("subject_id", activeSubject.id);
@@ -64,6 +80,24 @@ export default async function QuestionsPage({
   return (
     <div className="space-y-4">
       <h1 className="text-xl font-semibold">Questions</h1>
+
+      {/* Track filter — each track is a separate bank */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
+          Track
+        </span>
+        {TRACK_ORDER.map((t) => (
+          <Link
+            key={t}
+            href={linkWith({ track: t })}
+            className={`badge ${
+              activeTrack === t ? "bg-[var(--primary)] text-white" : "bg-black/[0.05]"
+            }`}
+          >
+            {TRACK_LABELS[t]}
+          </Link>
+        ))}
+      </div>
 
       {/* Exam-type filter */}
       <div className="flex flex-wrap items-center gap-1.5">
@@ -100,7 +134,7 @@ export default async function QuestionsPage({
         >
           All
         </Link>
-        {subjects.map((s) => (
+        {trackSubjects.map((s) => (
           <Link
             key={s.id}
             href={linkWith({ subject: s.slug })}

@@ -38,6 +38,7 @@ export default async function ExamsCatalog({
     .select("*")
     .is("deleted_at", null)
     .eq("is_published", true)
+    .eq("track", profile.track)
     .order("created_at", { ascending: false });
 
   const [{ plan }, usage, iosApp] = await Promise.all([
@@ -57,6 +58,7 @@ export default async function ExamsCatalog({
         .from("exam_templates")
         .select("*")
         .eq("owner_id", profile.id)
+        .eq("track", profile.track)
         .is("deleted_at", null)
         .order("created_at", { ascending: false })
     : { data: null };

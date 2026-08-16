@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { getEntitlements } from "@/lib/billing/entitlements";
 import { categoryLabel, type ExamCategory } from "@/lib/categories";
+import { coerceTrack } from "@/lib/tracks";
 
 export type NotifType = "announcement" | "exam" | "sub";
 
@@ -34,7 +35,7 @@ export async function getNotifications(
 
   // Independent reads — fire together instead of one round trip at a time.
   const [{ data: profile }, { data: anns }, { data: exams }, { data: sub }] = await Promise.all([
-    supabase.from("profiles").select("notifications_seen_at, role").eq("id", user.id).single(),
+    supabase.from("profiles").select("notifications_seen_at, role, track").eq("id", user.id).single(),
     supabase
       .from("announcements")
       .select("id, title, body, created_at")
@@ -42,12 +43,14 @@ export async function getNotifications(
       .limit(10),
     supabase
       .from("exam_templates")
-      .select("id, title, category, created_at")
+      .select("id, title, category, created_at, track")
       .is("deleted_at", null)
       .eq("is_published", true)
       .gte("created_at", since)
       .order("created_at", { ascending: false })
-      .limit(6),
+      // Over-fetched because the track filter can only be applied once the
+      // profile read above resolves, and these fire together. Trimmed to 6 below.
+      .limit(30),
     supabase
       .from("subscriptions")
       .select("status, current_period_end, updated_at")
@@ -65,7 +68,8 @@ export async function getNotifications(
     items.push({ id: `ann-${a.id}`, type: "announcement", title: a.title, body: a.body, at: a.created_at });
   }
 
-  for (const e of exams ?? []) {
+  const myTrack = coerceTrack(profile?.track);
+  for (const e of (exams ?? []).filter((e) => coerceTrack(e.track) === myTrack).slice(0, 6)) {
     items.push({
       id: `exam-${e.id}`,
       type: "exam",

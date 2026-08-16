@@ -1,15 +1,32 @@
 "use client";
 
 import Link from "next/link";
-import { PLANS, type PlanTier } from "@/lib/billing/plans";
+import { useState } from "react";
+import { plansForTrack, type PlanTier } from "@/lib/billing/plans";
+import {
+  TRACK_ORDER,
+  TRACK_LABELS,
+  TRACK_FULL_NAMES,
+  trackLabel,
+  type ExamTrack,
+} from "@/lib/tracks";
 
 export default function PricingClient({
   signedIn,
   currentPlan,
+  track,
+  lockedToTrack,
 }: {
   signedIn: boolean;
   currentPlan: PlanTier;
+  track: ExamTrack;
+  /** Signed-in students can only buy for the track they're on. */
+  lockedToTrack: boolean;
 }) {
+  const [shown, setShown] = useState<ExamTrack>(track);
+  const active = lockedToTrack ? track : shown;
+  const plans = plansForTrack(active);
+
   return (
     <main className="app-gradient min-h-screen px-4 py-12">
       <div className="mx-auto max-w-5xl">
@@ -19,12 +36,38 @@ export default function PricingClient({
           </Link>
           <h1 className="mt-2 text-3xl font-bold tracking-tight">Choose your plan</h1>
           <p className="mt-2 text-[var(--muted)]">
-            Pass the PRC Physician Licensure Exam with focused practice and full mock exams.
+            Pass the {TRACK_FULL_NAMES[active]} with focused practice and full mock exams.
           </p>
+
+          {lockedToTrack ? (
+            <p className="mt-3 text-xs text-[var(--muted)]">
+              Showing {trackLabel(active)} plans.{" "}
+              <Link href="/account" className="text-[var(--primary)] underline">
+                Switch exam track
+              </Link>{" "}
+              to see the other.
+            </p>
+          ) : (
+            <div className="mt-4 inline-flex rounded-full border border-[var(--border)] p-1">
+              {TRACK_ORDER.map((t) => (
+                <button
+                  key={t}
+                  onClick={() => setShown(t)}
+                  className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+                    t === active
+                      ? "bg-[var(--primary)] text-white"
+                      : "text-[var(--muted)] hover:text-[var(--fg)]"
+                  }`}
+                >
+                  {TRACK_LABELS[t]}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="stagger grid gap-5 md:grid-cols-3">
-          {PLANS.map((p) => {
+          {plans.map((p) => {
             const price = p.price;
             const isCurrent = currentPlan === p.tier;
             return (

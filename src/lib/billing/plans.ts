@@ -9,6 +9,13 @@
 // period and quota window are deliberately separate concerns; deriving one
 // from the other is what broke when this moved off monthly billing.
 
+import {
+  type ExamTrack,
+  DEFAULT_TRACK,
+  TRACK_LABELS,
+  TRACK_SUBJECT_COUNT,
+} from "@/lib/tracks";
+
 export type PlanTier = "free" | "basic" | "pro" | "max_pro";
 export type BillingInterval = "month" | "year";
 
@@ -23,6 +30,13 @@ export const TIER_RANK: Record<PlanTier, number> = {
   pro: 2,
   max_pro: 3,
 };
+
+/**
+ * Placeholder swapped per track by plansForTrack(). The tiers, prices and
+ * quotas are identical on every track — only the subject-count line differs —
+ * so PLANS stays a single array rather than one copy per track.
+ */
+const SUBJECTS_FEATURE = "__SUBJECTS__";
 
 export interface PlanDef {
   tier: PlanTier;
@@ -44,7 +58,7 @@ export const PLANS: PlanDef[] = [
       "Unlimited daily & weekly exams",
       "2 mock exams per month",
       "Resources: books, PDFs & review materials",
-      "All 12 PLE subjects",
+      SUBJECTS_FEATURE,
       "Instant answer explanations",
       "Saved practice history",
     ],
@@ -90,8 +104,21 @@ export const EXAM_LIMITS: Record<PlanTier, { mock: number | null; practice: numb
   max_pro: { mock: null, practice: null },
 };
 
-export function planByTier(tier: PlanTier): PlanDef | undefined {
-  return PLANS.find((p) => p.tier === tier);
+/**
+ * The plans as shown to a student on a given track. Same tiers, same prices —
+ * only the subject line is track-specific. Use this anywhere plans are rendered
+ * or priced; PLANS itself is the untemplated source.
+ */
+export function plansForTrack(track: ExamTrack = DEFAULT_TRACK): PlanDef[] {
+  const subjects = `All ${TRACK_SUBJECT_COUNT[track]} ${TRACK_LABELS[track]} subjects`;
+  return PLANS.map((p) => ({
+    ...p,
+    features: p.features.map((f) => (f === SUBJECTS_FEATURE ? subjects : f)),
+  }));
+}
+
+export function planByTier(tier: PlanTier, track: ExamTrack = DEFAULT_TRACK): PlanDef | undefined {
+  return plansForTrack(track).find((p) => p.tier === tier);
 }
 
 export function planLabel(tier: PlanTier): string {

@@ -15,6 +15,8 @@ export interface Profile {
   id: string;
   full_name: string | null;
   role: Role;
+  /** Which exam this student is preparing for. Drives what they can see and buy. */
+  track: import("@/lib/tracks").ExamTrack;
   created_at: string;
 }
 
@@ -23,11 +25,12 @@ export interface Subject {
   name: string;
   slug: string;
   order: number;
+  track: import("@/lib/tracks").ExamTrack;
 }
 
 export type ResourceKind = "book" | "pdf" | "review";
 
-/** A Max Pro study resource — an external link to a book, PDF or review exam. */
+/** A paid-plan study resource — an external link to a book, PDF or review exam. */
 export interface Resource {
   id: string;
   title: string;
@@ -35,6 +38,8 @@ export interface Resource {
   url: string;
   kind: ResourceKind;
   sort_order: number;
+  /** NULL shows the resource on every track; a value pins it to one. */
+  track: import("@/lib/tracks").ExamTrack | null;
   created_by: string | null;
   created_at: string;
 }
@@ -57,6 +62,8 @@ export interface ExamTemplate {
   title: string;
   mode: ExamMode;
   category: import("@/lib/categories").ExamCategory;
+  /** The exam this template prepares for. Its subjects must belong to the same track. */
+  track: import("@/lib/tracks").ExamTrack;
   questions_per_subject: number;
   total_questions: number | null;
   time_limit_minutes: number | null;

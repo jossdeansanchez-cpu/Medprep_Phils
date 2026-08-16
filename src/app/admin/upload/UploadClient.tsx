@@ -10,16 +10,31 @@ import {
   type DuplicateMatch,
 } from "@/app/admin/actions";
 import { CATEGORY_LABELS } from "@/lib/categories";
+import {
+  TRACK_ORDER,
+  TRACK_LABELS,
+  DEFAULT_TRACK,
+  type ExamTrack,
+} from "@/lib/tracks";
 import type { Subject } from "@/lib/types";
 
-const SAMPLE = [
-  CSV_HEADERS.join(","),
-  `Anatomy,daily,"The brachial plexus is formed by the ventral rami of which spinal nerves?",C5-T1,C3-C5,L1-L4,T1-T4,,A,"The brachial plexus arises from ventral rami of C5 through T1."`,
-  `Pharmacology,weekly,"Which drug is a beta-blocker?",Metoprolol,Amlodipine,Losartan,Furosemide,,A,"Metoprolol is a selective beta-1 adrenergic blocker."`,
-  `Medicine,mock,"Most common cause of acute pancreatitis?",Gallstones,Alcohol,Hypertriglyceridemia,Trauma,,A,"Gallstones are the leading cause of acute pancreatitis."`,
-].join("\n");
+const SAMPLES: Record<ExamTrack, string> = {
+  ple: [
+    CSV_HEADERS.join(","),
+    `Anatomy,daily,"The brachial plexus is formed by the ventral rami of which spinal nerves?",C5-T1,C3-C5,L1-L4,T1-T4,,A,"The brachial plexus arises from ventral rami of C5 through T1."`,
+    `Pharmacology,weekly,"Which drug is a beta-blocker?",Metoprolol,Amlodipine,Losartan,Furosemide,,A,"Metoprolol is a selective beta-1 adrenergic blocker."`,
+    `Medicine,mock,"Most common cause of acute pancreatitis?",Gallstones,Alcohol,Hypertriglyceridemia,Trauma,,A,"Gallstones are the leading cause of acute pancreatitis."`,
+  ].join("\n"),
+  nmat: [
+    CSV_HEADERS.join(","),
+    `Biology,daily,"Which organelle is the site of aerobic respiration?",Mitochondrion,Ribosome,Golgi apparatus,Lysosome,,A,"The mitochondrion carries out oxidative phosphorylation."`,
+    `Quantitative,weekly,"If 3x + 7 = 22, what is x?",5,3,7,15,,A,"3x = 15, so x = 5."`,
+    `Verbal,mock,"Select the word most nearly opposite in meaning to ABUNDANT.",Scarce,Plentiful,Ample,Copious,,A,"Abundant means plentiful; its antonym is scarce."`,
+  ].join("\n"),
+};
 
 export default function UploadClient({ subjects }: { subjects: Subject[] }) {
+  const [track, setTrack] = useState<ExamTrack>(DEFAULT_TRACK);
   const [fileName, setFileName] = useState<string | null>(null);
   const [rows, setRows] = useState<RawRow[]>([]);
   const [result, setResult] = useState<ValidationResult | null>(null);
@@ -29,12 +44,26 @@ export default function UploadClient({ subjects }: { subjects: Subject[] }) {
   const [duplicates, setDuplicates] = useState<Record<number, DuplicateMatch[]>>({});
   const [checkingDuplicates, startDupCheck] = useTransition();
 
+  // Only the chosen track's subjects are offered to the validator, so a sheet
+  // uploaded under the wrong track reports "unknown subject" instead of quietly
+  // filing NMAT questions under a PLE subject. The server repeats this.
+  const trackSubjects = subjects.filter((s) => s.track === track);
+
+  /** Re-check an already-loaded file against the newly chosen track's subjects. */
+  function changeTrack(next: ExamTrack) {
+    setTrack(next);
+    setDone(null);
+    if (rows.length === 0) return;
+    setDuplicates({});
+    setResult(validateRows(rows, subjects.filter((s) => s.track === next)));
+  }
+
   function ingest(parsed: RawRow[]) {
     setParseError(null);
     setDone(null);
     setRows(parsed);
     setDuplicates({});
-    const validated = validateRows(parsed, subjects);
+    const validated = validateRows(parsed, trackSubjects);
     setResult(validated);
 
     if (validated.valid.length > 0) {
@@ -75,11 +104,11 @@ export default function UploadClient({ subjects }: { subjects: Subject[] }) {
   }
 
   function downloadTemplate() {
-    const blob = new Blob([SAMPLE], { type: "text/csv" });
+    const blob = new Blob([SAMPLES[track]], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "medprep-question-template.csv";
+    a.download = `medprep-${track}-question-template.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -87,7 +116,7 @@ export default function UploadClient({ subjects }: { subjects: Subject[] }) {
   function commit() {
     if (!result || result.valid.length === 0) return;
     startImport(async () => {
-      const res = await importQuestions(rows);
+      const res = await importQuestions(rows, track);
       setDone(res);
       if (!res.error) {
         setRows([]);
@@ -103,9 +132,31 @@ export default function UploadClient({ subjects }: { subjects: Subject[] }) {
         <h1 className="text-xl font-semibold">Upload question bank</h1>
         <p className="text-sm text-[var(--muted)]">
           CSV or Excel with columns: {CSV_HEADERS.join(", ")}. <code>subject</code> must
-          match one of the 12 PLE subjects (e.g. &quot;Anatomy&quot;), and <code>category</code>{" "}
+          match one of the {trackSubjects.length} {TRACK_LABELS[track]} subjects (e.g.
+          &quot;{trackSubjects[0]?.name ?? "Anatomy"}&quot;), and <code>category</code>{" "}
           is the exam type: <code>daily</code>, <code>weekly</code>, or <code>mock</code>{" "}
           (blank = daily).
+        </p>
+      </div>
+
+      <div className="card">
+        <label className="label" htmlFor="upload_track">Exam track</label>
+        <select
+          id="upload_track"
+          className="input max-w-xs"
+          value={track}
+          onChange={(e) => changeTrack(e.target.value as ExamTrack)}
+          disabled={isImporting}
+        >
+          {TRACK_ORDER.map((t) => (
+            <option key={t} value={t}>
+              {TRACK_LABELS[t]}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-[var(--muted)]">
+          Which bank these questions join. Subject names are matched within this
+          track only.
         </p>
       </div>
 

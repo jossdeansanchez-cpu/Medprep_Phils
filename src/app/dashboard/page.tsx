@@ -44,6 +44,7 @@ export default async function Dashboard() {
     .select("*")
     .is("deleted_at", null)
     .eq("is_published", true)
+    .eq("track", profile.track)
     .order("created_at", { ascending: false });
 
   const { data: attempts } = await supabase

@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { deleteResource } from "@/app/admin/actions";
 import ResourceForm from "./ResourceForm";
 import type { Resource, ResourceKind } from "@/lib/types";
+import { trackLabel } from "@/lib/tracks";
 
 const KIND_LABEL: Record<ResourceKind, string> = {
   book: "Book",
@@ -43,6 +44,9 @@ export default async function AdminResourcesPage() {
                     <div className="mb-1 flex flex-wrap items-center gap-2">
                       <span className="badge bg-[var(--primary)]/10 text-[var(--primary)]">
                         {KIND_LABEL[r.kind]}
+                      </span>
+                      <span className="badge bg-black/[0.06]">
+                        {r.track ? trackLabel(r.track) : "Both tracks"}
                       </span>
                       <span className="text-xs text-[var(--muted)]">#{r.sort_order}</span>
                     </div>
