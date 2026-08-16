@@ -259,6 +259,9 @@ export default async function Home() {
           <div className="flex items-center gap-5">
             <Link href="/pricing" className="hover:text-[var(--foreground)]">Pricing</Link>
             <Link href="/privacy" className="hover:text-[var(--foreground)]">Privacy</Link>
+            <Link href="/delete-account" className="hover:text-[var(--foreground)]">
+              Delete account
+            </Link>
             <Link href="/login" className="hover:text-[var(--foreground)]">Sign in</Link>
             <Link href="/signup" className="hover:text-[var(--foreground)]">Get started</Link>
           </div>
