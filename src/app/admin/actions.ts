@@ -9,6 +9,7 @@ import { createRecoveryLink } from "@/lib/auth/recovery-link";
 import { validateRows, type RawRow, type ValidQuestion } from "@/lib/csv";
 import { sendEmail, emailLayout, emailConfigured, getStudentEmails } from "@/lib/email";
 import { CATEGORY_ORDER, type ExamCategory } from "@/lib/categories";
+import { coerceTrack, parseTrack } from "@/lib/tracks";
 import type { OptionLabel, QuestionOption } from "@/lib/types";
 
 export type FormState = { error?: string; message?: string } | undefined;
@@ -148,12 +149,20 @@ export async function createStudent(
  * then insert the valid questions. Returns how many were inserted/skipped.
  */
 export async function importQuestions(
-  rows: RawRow[]
+  rows: RawRow[],
+  track: string
 ): Promise<{ inserted: number; skipped: number; error?: string }> {
   const profile = await requireAdmin();
   const supabase = await createClient();
 
-  const { data: subjects } = await supabase.from("subjects").select("*");
+  // Scoping the subject list to the chosen track is what keeps a question out of
+  // the wrong exam: validateRows resolves the "subject" cell against this list
+  // only, so an NMAT sheet uploaded under PLE fails loudly instead of matching a
+  // same-named subject on the other track.
+  const { data: subjects } = await supabase
+    .from("subjects")
+    .select("*")
+    .eq("track", coerceTrack(track));
   const { valid, errors } = validateRows(rows, subjects ?? []);
 
   if (valid.length === 0) {
@@ -378,11 +387,16 @@ export async function createResource(
     return { error: "Pick a valid type." };
   }
 
+  // Blank means "show on every track" — the RLS policy reads a null track as
+  // unrestricted, which suits general study material.
+  const trackRaw = String(formData.get("track") ?? "").trim();
+
   const { error } = await supabase.from("resources").insert({
     title,
     url,
     description: description || null,
     kind,
+    track: trackRaw ? parseTrack(trackRaw) : null,
     sort_order: sortRaw ? Number(sortRaw) : 0,
     created_by: profile.id,
   });
@@ -441,6 +455,7 @@ export async function createTemplate(formData: FormData) {
   const supabase = await createClient();
 
   const category = String(formData.get("category") ?? "mock_exam");
+  const track = coerceTrack(formData.get("track"));
   const timeRaw = String(formData.get("time_limit_minutes") ?? "").trim();
   const subjectIds = formData.getAll("subjects").map(String).filter(Boolean);
   const count = parseQuestionCount(formData);
@@ -450,6 +465,7 @@ export async function createTemplate(formData: FormData) {
     title: String(formData.get("title") ?? "").trim(),
     mode: "mock",
     category,
+    track,
     questions_per_subject: count.questions_per_subject,
     total_questions: count.total_questions,
     time_limit_minutes: timeRaw ? Number(timeRaw) : null,
@@ -471,6 +487,7 @@ export async function updateTemplate(id: string, formData: FormData) {
   const supabase = await createClient();
 
   const category = String(formData.get("category") ?? "mock_exam");
+  const track = coerceTrack(formData.get("track"));
   const timeRaw = String(formData.get("time_limit_minutes") ?? "").trim();
   const subjectIds = formData.getAll("subjects").map(String).filter(Boolean);
   const count = parseQuestionCount(formData);
@@ -480,6 +497,7 @@ export async function updateTemplate(id: string, formData: FormData) {
     .update({
       title: String(formData.get("title") ?? "").trim(),
       category,
+      track,
       questions_per_subject: count.questions_per_subject,
       total_questions: count.total_questions,
       time_limit_minutes: timeRaw ? Number(timeRaw) : null,

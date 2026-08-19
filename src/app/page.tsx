@@ -3,27 +3,46 @@ import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
 import { PLANS } from "@/lib/billing/plans";
+import { TRACK_ORDER, TRACK_LABELS, TRACK_FULL_NAMES, type ExamTrack } from "@/lib/tracks";
 
-const SUBJECTS = [
-  "Anatomy",
-  "Biochemistry",
-  "Physiology",
-  "Microbiology & Parasitology",
-  "Pathology",
-  "Pharmacology",
-  "Medicine",
-  "Surgery",
-  "Obstetrics & Gynecology",
-  "Pediatrics",
-  "Preventive Medicine & Public Health",
-  "Legal Medicine & Ethics",
-];
+/** Mirrors the seeded subjects per track (supabase/migrations 0002 and 0037). */
+const TRACK_SUBJECTS: Record<ExamTrack, string[]> = {
+  ple: [
+    "Anatomy",
+    "Biochemistry",
+    "Physiology",
+    "Microbiology & Parasitology",
+    "Pathology",
+    "Pharmacology",
+    "Medicine",
+    "Surgery",
+    "Obstetrics & Gynecology",
+    "Pediatrics",
+    "Preventive Medicine & Public Health",
+    "Legal Medicine & Ethics",
+  ],
+  nmat: [
+    "Verbal",
+    "Inductive Reasoning",
+    "Quantitative",
+    "Perceptual Acuity",
+    "Biology",
+    "Physics",
+    "Social Science",
+    "Chemistry",
+  ],
+};
+
+const TRACK_PITCH: Record<ExamTrack, string> = {
+  ple: "The PRC board exam you sit after medical school. Twelve subjects, scored on the real 75% / 50% rule.",
+  nmat: "The entrance exam you sit before medical school. Mental Ability and Academic Proficiency, eight subjects in all.",
+};
 
 const FACTS = [
-  { n: "12", label: "Board subjects" },
-  { n: "2", label: "Modes: mock + study" },
-  { n: "75%", label: "Passing average" },
-  { n: "50%", label: "Minimum per subject" },
+  { n: "2", label: "Exams: PLE & NMAT" },
+  { n: "20", label: "Subjects covered" },
+  { n: "3", label: "Modes: daily, weekly, mock" },
+  { n: "75%", label: "PLE passing average" },
 ];
 
 export default async function Home() {
@@ -55,23 +74,30 @@ export default async function Home() {
         <div className="mx-auto grid max-w-6xl items-center gap-12 px-4 pt-16 pb-20 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:pt-24">
           <div className="reveal">
             <span className="inline-flex items-center rounded-full border border-[var(--primary)]/20 bg-[var(--primary)]/10 px-3 py-1 text-xs font-medium text-[var(--primary)]">
-              Philippine Physician Licensure Exam
+              PLE &amp; NMAT preparation
             </span>
             <h1 className="mt-5 text-4xl font-bold leading-[1.06] tracking-tight sm:text-5xl lg:text-6xl">
-              Walk into the PRC boards ready.
+              Walk into your medical exam ready.
             </h1>
             <p className="mt-5 max-w-xl text-lg text-[var(--muted)]">
-              Realistic timed mock exams and untimed study mode across all 12 subjects,
-              scored exactly like the real licensure exam.
+              Realistic timed mock exams and daily practice for the Physician Licensure
+              Exam and the National Medical Admission Test — scored exactly like the
+              real thing.
             </p>
             <div className="mt-8 flex flex-wrap items-center gap-3">
-              <Link href="/signup" className="btn-primary px-5 py-2.5 text-base">
-                Get started free
+              <Link href="/signup?track=ple" className="btn-primary px-5 py-2.5 text-base">
+                Prepare for the PLE
               </Link>
-              <Link href="/login" className="btn-outline px-5 py-2.5 text-base">
-                Sign in
+              <Link href="/signup?track=nmat" className="btn-outline px-5 py-2.5 text-base">
+                Prepare for the NMAT
               </Link>
             </div>
+            <p className="mt-3 text-sm text-[var(--muted)]">
+              Free to start.{" "}
+              <Link href="/login" className="text-[var(--primary)] underline">
+                Already have an account?
+              </Link>
+            </p>
           </div>
 
           <div className="reveal" style={{ animationDelay: "0.12s" }}>
@@ -104,7 +130,7 @@ export default async function Home() {
       {/* How you will prepare - zigzag (max 2) */}
       <section className="mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-28">
         <h2 className="max-w-2xl text-3xl font-bold tracking-tight sm:text-4xl">
-          Two ways to prepare, both built for the boards.
+          Two ways to prepare, whichever exam you&apos;re sitting.
         </h2>
 
         <div className="scroll-reveal mt-14 grid items-center gap-10 lg:grid-cols-2">
@@ -161,25 +187,46 @@ export default async function Home() {
         <div className="scroll-reveal mx-auto max-w-6xl px-4 py-20 sm:px-6 lg:py-24">
           <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
             <h2 className="max-w-md text-3xl font-bold tracking-tight sm:text-4xl">
-              Every subject on the exam.
+              Every subject on both exams.
             </h2>
             <p className="max-w-sm text-[var(--muted)]">
-              The full PLE coverage, from Anatomy to Legal Medicine, in one place.
+              Pick your exam when you sign up — you only ever see the subjects that
+              matter to you.
             </p>
           </div>
-          <ul className="mt-10 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
-            {SUBJECTS.map((s, i) => (
-              <li
-                key={s}
-                className="flex items-center gap-3 rounded-xl border border-black/[0.06] bg-[var(--background)] px-4 py-3.5 text-sm font-medium"
-              >
-                <span className="font-mono text-xs text-[var(--primary)]">
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                {s}
-              </li>
+
+          <div className="mt-10 grid gap-10 lg:grid-cols-2">
+            {TRACK_ORDER.map((t) => (
+              <div key={t}>
+                <div className="flex items-baseline gap-3">
+                  <h3 className="text-xl font-semibold">{TRACK_LABELS[t]}</h3>
+                  <span className="text-sm text-[var(--muted)]">
+                    {TRACK_FULL_NAMES[t]}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-[var(--muted)]">{TRACK_PITCH[t]}</p>
+                <ul className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  {TRACK_SUBJECTS[t].map((s, i) => (
+                    <li
+                      key={s}
+                      className="flex items-center gap-3 rounded-xl border border-black/[0.06] bg-[var(--background)] px-4 py-3.5 text-sm font-medium"
+                    >
+                      <span className="font-mono text-xs text-[var(--primary)]">
+                        {String(i + 1).padStart(2, "0")}
+                      </span>
+                      {s}
+                    </li>
+                  ))}
+                </ul>
+                <Link
+                  href={`/signup?track=${t}`}
+                  className="btn-outline mt-5 inline-flex text-sm"
+                >
+                  Start {TRACK_LABELS[t]} prep
+                </Link>
+              </div>
             ))}
-          </ul>
+          </div>
         </div>
       </section>
 
@@ -187,11 +234,12 @@ export default async function Home() {
       <section className="bg-[var(--primary)] text-white">
         <div className="scroll-reveal mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:py-20">
           <p className="text-sm font-medium uppercase tracking-wide text-white/70">
-            Scored like the real boards
+            Scored like the real exam
           </p>
           <p className="mt-3 max-w-3xl text-2xl font-semibold leading-snug sm:text-3xl">
-            You pass at a 75% general average with no subject below 50%. MEDprep applies the
-            exact rule, so your practice score means what it says.
+            On the PLE you pass at a 75% general average with no subject below 50%.
+            MEDprep applies the exact rule — and scores every NMAT set the same way,
+            subject by subject — so your practice score means what it says.
           </p>
         </div>
       </section>
@@ -259,6 +307,9 @@ export default async function Home() {
           <div className="flex items-center gap-5">
             <Link href="/pricing" className="hover:text-[var(--foreground)]">Pricing</Link>
             <Link href="/privacy" className="hover:text-[var(--foreground)]">Privacy</Link>
+            <Link href="/delete-account" className="hover:text-[var(--foreground)]">
+              Delete account
+            </Link>
             <Link href="/login" className="hover:text-[var(--foreground)]">Sign in</Link>
             <Link href="/signup" className="hover:text-[var(--foreground)]">Get started</Link>
           </div>

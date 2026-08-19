@@ -7,6 +7,8 @@ import { planLabel } from "@/lib/billing/plans";
 import { listMyDevices, deviceLabel, DEVICE_LIMITS } from "@/lib/devices";
 import { removeDevice } from "./actions";
 import DeleteAccount from "./DeleteAccount";
+import TrackSwitcher from "./TrackSwitcher";
+import { trackFullName, trackLabel } from "@/lib/tracks";
 import { applyPaymentIntentResult } from "@/lib/billing/paymongo-fulfillment";
 import { isIosApp } from "@/lib/platform/server";
 
@@ -95,6 +97,19 @@ export default async function AccountPage({
               </Link>
             </div>
           )}
+        </section>
+
+        <section className="glass p-6">
+          <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Exam track</p>
+          <p className="mt-1 text-sm text-[var(--muted)]">
+            You&apos;re preparing for the {trackFullName(profile.track)} (
+            {trackLabel(profile.track)}). This decides which exams, subjects and
+            resources you see.
+          </p>
+          <TrackSwitcher
+            current={profile.track}
+            paidPlanLabel={isPaid && ent.entitled ? planLabel(ent.plan) : null}
+          />
         </section>
 
         <section className="glass p-6">

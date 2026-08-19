@@ -16,9 +16,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "MEDprep — PRC Physician Exam Practice",
+  title: "MEDprep — PLE & NMAT Exam Practice",
   description:
-    "Practice for the Philippine Physician Licensure Examination with timed mock exams and untimed study mode.",
+    "Practice for the Philippine Physician Licensure Examination and the National Medical Admission Test with timed mock exams and daily practice sets.",
   // iOS ignores the manifest's icons/theme, so it needs these explicitly.
   appleWebApp: {
     capable: true,

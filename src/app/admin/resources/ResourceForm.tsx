@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef } from "react";
 import { createResource, type FormState } from "@/app/admin/actions";
+import { TRACK_ORDER, TRACK_LABELS } from "@/lib/tracks";
 
 export default function ResourceForm() {
   const [state, action, pending] = useActionState<FormState, FormData>(
@@ -37,6 +38,21 @@ export default function ResourceForm() {
           <option value="pdf">PDF reference</option>
           <option value="review">Review exam</option>
         </select>
+      </div>
+
+      <div>
+        <label className="label" htmlFor="track">Exam track</label>
+        <select id="track" name="track" className="input" defaultValue="">
+          <option value="">Both tracks</option>
+          {TRACK_ORDER.map((t) => (
+            <option key={t} value={t}>
+              {TRACK_LABELS[t]} only
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-[var(--muted)]">
+          Leave on “Both” for general study material.
+        </p>
       </div>
 
       <div>

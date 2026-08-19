@@ -2,7 +2,8 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isIosApp } from "@/lib/platform/server";
-import { PLANS, PLAN_TIERS, type PlanTier } from "@/lib/billing/plans";
+import { plansForTrack, PLAN_TIERS, type PlanTier } from "@/lib/billing/plans";
+import { trackLabel } from "@/lib/tracks";
 import CheckoutForm from "./CheckoutForm";
 
 export default async function CheckoutPage({
@@ -25,20 +26,25 @@ export default async function CheckoutPage({
     !!p && (PLAN_TIERS as string[]).includes(p) && p !== "free";
   if (!isValidPlan(plan)) redirect("/pricing");
 
-  const planDef = PLANS.find((p) => p.tier === plan)!;
+  // The track comes from the profile, matching what create-intent will stamp on
+  // the payment — so the buyer sees exactly what they're about to unlock.
+  const planDef = plansForTrack(profile.track).find((p) => p.tier === plan)!;
   const testMode = (process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY ?? "").startsWith("pk_test_");
 
   return (
     <main className="app-gradient min-h-screen px-4 py-12">
       <div className="mx-auto max-w-md">
         <div className="glass p-6">
-          <p className="text-sm font-medium text-[var(--primary)]">{planDef.name}</p>
+          <p className="text-sm font-medium text-[var(--primary)]">
+            {trackLabel(profile.track)} {planDef.name}
+          </p>
           <h1 className="mt-1 text-2xl font-bold tracking-tight">
             ₱{planDef.price.toLocaleString()}
             <span className="text-base font-normal text-[var(--muted)]">/year</span>
           </h1>
           <p className="mt-1 text-sm text-[var(--muted)]">
-            A full year of access. No auto-charge — you renew once a year.
+            A full year of {trackLabel(profile.track)} access. No auto-charge — you
+            renew once a year.
           </p>
 
           {testMode && (

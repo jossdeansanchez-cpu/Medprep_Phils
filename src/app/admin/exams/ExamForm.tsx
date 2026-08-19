@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { CATEGORY_ORDER, CATEGORY_LABELS, type ExamCategory } from "@/lib/categories";
+import { TRACK_ORDER, TRACK_LABELS, DEFAULT_TRACK, type ExamTrack } from "@/lib/tracks";
 import { computeAvailability, type Coverage } from "@/lib/exam-availability";
 import type { ExamTemplate, Subject } from "@/lib/types";
 
@@ -30,9 +31,24 @@ export default function ExamForm({
   const [category, setCategory] = useState<ExamCategory>(
     template?.category ?? "daily_practice"
   );
+  const [track, setTrack] = useState<ExamTrack>(template?.track ?? DEFAULT_TRACK);
   const [selected, setSelected] = useState<Set<string>>(
     new Set(template?.subject_ids ?? [])
   );
+
+  // An exam draws only from its own track's subjects (start_attempt enforces the
+  // same), so the picker below shows just those.
+  const trackSubjects = useMemo(
+    () => subjects.filter((s) => s.track === track),
+    [subjects, track]
+  );
+
+  function changeTrack(next: ExamTrack) {
+    setTrack(next);
+    // Any subject ticked from the previous track is meaningless now, and leaving
+    // it selected would silently narrow the exam to nothing.
+    setSelected(new Set());
+  }
   const [totalQ, setTotalQ] = useState<number>(template?.total_questions ?? 20);
   const [perSubjectQ, setPerSubjectQ] = useState<number>(
     template?.questions_per_subject ?? 5
@@ -47,10 +63,11 @@ export default function ExamForm({
     });
   }
 
-  // Scope = checked subjects, or ALL subjects when none checked (matches start_attempt).
+  // Scope = checked subjects, or every subject ON THIS TRACK when none checked
+  // (matches start_attempt, which filters the pool by the template's track).
   const scopedSubjectIds = useMemo(
-    () => (selected.size > 0 ? [...selected] : subjects.map((s) => s.id)),
-    [selected, subjects]
+    () => (selected.size > 0 ? [...selected] : trackSubjects.map((s) => s.id)),
+    [selected, trackSubjects]
   );
 
   const availability = useMemo(
@@ -85,6 +102,27 @@ export default function ExamForm({
           placeholder="PLE Mock Exam 1"
           defaultValue={template?.title ?? ""}
         />
+      </div>
+
+      <div>
+        <label className="label" htmlFor="track">Exam track</label>
+        <select
+          id="track"
+          name="track"
+          className="input"
+          value={track}
+          onChange={(e) => changeTrack(e.target.value as ExamTrack)}
+        >
+          {TRACK_ORDER.map((t) => (
+            <option key={t} value={t}>
+              {TRACK_LABELS[t]}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1 text-xs text-[var(--muted)]">
+          Only students on this track will see the exam, and it draws only from
+          this track&apos;s question bank.
+        </p>
       </div>
 
       <div>
@@ -224,10 +262,11 @@ export default function ExamForm({
       <div>
         <label className="label">Subjects</label>
         <p className="-mt-0.5 mb-2 text-xs text-[var(--muted)]">
-          Pick which subjects this exam covers. Leave all unchecked to include every subject.
+          Pick which subjects this exam covers. Leave all unchecked to include
+          every {TRACK_LABELS[track]} subject.
         </p>
         <div className="grid max-h-44 grid-cols-1 gap-1 overflow-y-auto rounded-lg border border-[var(--border)] p-2 sm:grid-cols-2">
-          {subjects.map((s) => (
+          {trackSubjects.map((s) => (
             <label
               key={s.id}
               className="flex items-center gap-2 rounded-md px-2 py-1 text-sm hover:bg-black/[0.03]"

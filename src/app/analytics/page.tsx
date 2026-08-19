@@ -37,8 +37,11 @@ export default async function AnalyticsPage() {
   const [{ data: attemptsData }, { data: masteryData }] = await Promise.all([
     supabase
       .from("exam_attempts")
-      .select("submitted_at, general_average")
+      // !inner so the track filter restricts the rows — the score trend should
+      // match the mastery table below, which my_subject_mastery scopes the same way.
+      .select("submitted_at, general_average, exam_templates!inner(track)")
       .eq("status", "submitted")
+      .eq("exam_templates.track", profile.track)
       .order("submitted_at", { ascending: true }),
     supabase.rpc("my_subject_mastery"),
   ]);

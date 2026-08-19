@@ -5,6 +5,7 @@ import ExamForm from "./ExamForm";
 import DeleteExam from "./DeleteExam";
 import type { ExamTemplate, Subject } from "@/lib/types";
 import { categoryLabel } from "@/lib/categories";
+import { trackLabel } from "@/lib/tracks";
 import { buildCoverage, type CoverageRow } from "@/lib/exam-availability";
 
 export default async function ExamsPage() {
@@ -52,7 +53,10 @@ export default async function ExamsPage() {
                   <div>
                     <p className="font-semibold">
                       {t.title}
-                      <span className="badge ml-2 bg-[var(--primary)]/10 text-[var(--primary)]">
+                      <span className="badge ml-2 bg-black/[0.06]">
+                        {trackLabel(t.track)}
+                      </span>
+                      <span className="badge ml-1 bg-[var(--primary)]/10 text-[var(--primary)]">
                         {categoryLabel(t.category)}
                       </span>
                       {t.is_published ? (
@@ -72,7 +76,7 @@ export default async function ExamsPage() {
                     </p>
                     <p className="mt-1 text-xs text-[var(--muted)]">
                       {!t.subject_ids || t.subject_ids.length === 0
-                        ? "All subjects"
+                        ? `All ${trackLabel(t.track)} subjects`
                         : t.subject_ids.length <= 3
                           ? t.subject_ids.map(subjectName).join(", ")
                           : `${t.subject_ids.length} subjects`}

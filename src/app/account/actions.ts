@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { parseTrack } from "@/lib/tracks";
 
 /** Remove one of the current user's registered devices (frees a device slot). */
 export async function removeDevice(deviceId: string) {
@@ -66,6 +67,36 @@ export async function deleteMyAccount(
   revalidatePath("/", "layout");
   // Outside any try/catch: redirect() works by throwing NEXT_REDIRECT.
   redirect("/?deleted=1");
+}
+
+/**
+ * Switch which exam the student is preparing for.
+ *
+ * Deliberately does not touch the subscription. A plan is bought against a
+ * track, and public.effective_plan() reports 'free' once the two diverge — so
+ * someone with PLE Pro who moves to NMAT drops to the free tier on NMAT and
+ * gets their PLE plan back untouched if they switch return. The UI warns about
+ * this before the switch; enforcing it here would only duplicate the database.
+ */
+export async function setMyTrack(track: string): Promise<{ error: string } | void> {
+  const next = parseTrack(track);
+  if (!next) return { error: "Unknown exam track." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: "You're not signed in." };
+
+  const { error } = await supabase
+    .from("profiles")
+    .update({ track: next })
+    .eq("id", user.id);
+  if (error) return { error: error.message };
+
+  // Track decides the exam catalogue, the nav badges and the plan gates, so the
+  // whole shell is stale after this.
+  revalidatePath("/", "layout");
 }
 
 /** Mark the notification feed as seen (clears the unread badge). */
