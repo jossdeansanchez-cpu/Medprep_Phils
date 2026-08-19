@@ -7,6 +7,7 @@ import DeviceLimitBlock from "@/components/DeviceLimitBlock";
 import { checkDevice } from "@/lib/devices";
 import { attemptDeadlineMs, isAttemptExpired } from "@/lib/attempt-expiry";
 import { isIosApp } from "@/lib/platform/server";
+import { withSignedImages, examImageTtl } from "@/lib/images";
 import type { ExamMode, OptionLabel, QuestionOption } from "@/lib/types";
 import type { ExamCategory } from "@/lib/categories";
 
@@ -17,6 +18,8 @@ type RpcQuestion = {
   subject_name: string;
   item_no: number;
   stem: string;
+  /** Object path in the private bucket; swapped for a signed URL before render. */
+  stem_image_path: string | null;
   options: QuestionOption[];
   selected_label: OptionLabel | null;
   /** Already used "Show answer" — the item stays locked across a resume. */
@@ -94,6 +97,14 @@ export default async function ExamPage({
     return <ExpiredAttempt attemptId={id} title={template.title} />;
   }
 
+  // Swap stored paths for signed URLs here, after the expiry branches above —
+  // no point minting links for an attempt we're about to submit or discard.
+  // The client never sees a path, only a URL that dies with the exam.
+  const withImages = await withSignedImages(
+    rows,
+    examImageTtl(template.time_limit_minutes)
+  );
+
   return (
     <ExamRunner
       attemptId={id}
@@ -101,7 +112,7 @@ export default async function ExamPage({
       mode={template.mode}
       category={template.category}
       deadlineMs={deadlineMs}
-      questions={rows}
+      questions={withImages}
       isIosApp={await isIosApp()}
     />
   );

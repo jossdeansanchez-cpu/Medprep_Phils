@@ -3,19 +3,34 @@ import { redirect, notFound } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
-import type { OptionLabel, QuestionOption } from "@/lib/types";
+import QuestionFigure from "@/components/QuestionFigure";
+import { withSignedImages } from "@/lib/images";
+import type { OptionLabel, QuestionOption, SignedQuestionOption } from "@/lib/types";
 
 type ReviewRow = {
   item_no: number;
   subject_id: string;
   subject_name: string;
   stem: string;
+  stem_image_path: string | null;
   options: QuestionOption[];
   selected_label: OptionLabel | null;
   correct_label: OptionLabel;
   is_correct: boolean | null;
   explanation: string | null;
 };
+
+/** Same row once the server has swapped stored paths for signed URLs. */
+type SignedReviewRow = Omit<ReviewRow, "stem_image_path" | "options"> & {
+  stem_image_url: string | null;
+  options: SignedQuestionOption[];
+};
+
+/**
+ * Review is revisited long after the exam, so these links outlive the exam's own
+ * TTL — but they still expire, unlike a public URL.
+ */
+const REVIEW_TTL_SECONDS = 6 * 60 * 60;
 
 export default async function ResultsPage({
   params,
@@ -49,7 +64,8 @@ export default async function ResultsPage({
   const { data: review, error } = await supabase.rpc("get_attempt_review", {
     p_attempt_id: id,
   });
-  const rows = (review ?? []) as ReviewRow[];
+  const reviewRows = (review ?? []) as ReviewRow[];
+  const rows = (await withSignedImages(reviewRows, REVIEW_TTL_SECONDS)) as SignedReviewRow[];
 
   // Per-subject aggregation for the breakdown.
   const bySubject = new Map<string, { name: string; correct: number; total: number }>();
@@ -140,6 +156,7 @@ export default async function ResultsPage({
                 </span>
               </p>
               <p className="whitespace-pre-wrap text-sm font-medium">{r.stem}</p>
+              <QuestionFigure url={r.stem_image_url} variant="stem" alt="Figure for this question" />
               <div className="mt-2 space-y-1">
                 {r.options.map((opt) => {
                   const isCorrect = opt.label === r.correct_label;
@@ -156,7 +173,10 @@ export default async function ResultsPage({
                       }`}
                     >
                       <span className="font-semibold">{opt.label}.</span>
-                      <span>{opt.text}</span>
+                      <span className="min-w-0">
+                        {opt.text && <span>{opt.text}</span>}
+                        <QuestionFigure url={opt.image_url} variant="option" />
+                      </span>
                       {isCorrect && <span className="ml-auto text-xs text-[var(--primary)]">correct</span>}
                       {isPicked && !isCorrect && (
                         <span className="ml-auto text-xs text-[var(--danger)]">your answer</span>
