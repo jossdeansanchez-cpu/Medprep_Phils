@@ -8,7 +8,19 @@ export type OptionLabel = "A" | "B" | "C" | "D" | "E";
 
 export interface QuestionOption {
   label: OptionLabel;
-  text: string;
+  /**
+   * Optional because NMAT Perceptual Acuity choices are frequently a figure and
+   * nothing else. An option must carry text or an image; the label is what the
+   * student actually selects either way.
+   */
+  text?: string;
+  /** Object path in the private question-images bucket. Never a URL. */
+  image_path?: string;
+}
+
+/** An option once the server has swapped its stored path for a signed URL. */
+export interface SignedQuestionOption extends QuestionOption {
+  image_url?: string | null;
 }
 
 export interface Profile {
@@ -49,6 +61,8 @@ export interface Question {
   subject_id: string;
   category: import("@/lib/categories").ExamCategory;
   stem: string;
+  /** Figure shown above the stem. Object path, not a URL. */
+  stem_image_path: string | null;
   options: QuestionOption[];
   correct_label: OptionLabel;
   explanation: string | null;

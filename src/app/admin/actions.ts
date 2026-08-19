@@ -271,17 +271,29 @@ const OPTION_LABELS: OptionLabel[] = ["A", "B", "C", "D", "E"];
  * correct answer, explanation) so a fix no longer requires deleting and
  * re-uploading via CSV.
  */
-export async function updateQuestion(
-  id: string,
-  _prev: FormState,
-  formData: FormData
-): Promise<FormState> {
-  await requireAdmin();
-  const supabase = await createClient();
+/** The written form of a question, shared by create and update. */
+type ParsedQuestion = {
+  subject_id: string;
+  category: ExamCategory;
+  stem: string;
+  stem_image_path: string | null;
+  options: QuestionOption[];
+  correct_label: string;
+  explanation: string | null;
+};
 
+/**
+ * Validate the question form into a row, or return the message to show.
+ *
+ * An option counts as present when it has text *or* a figure: NMAT Perceptual
+ * Acuity choices are routinely an image and nothing else, so keying presence off
+ * text alone would silently drop them.
+ */
+function parseQuestionForm(formData: FormData): { row: ParsedQuestion } | { error: string } {
   const subject_id = String(formData.get("subject_id") ?? "").trim();
   const category = String(formData.get("category") ?? "").trim();
   const stem = String(formData.get("stem") ?? "").trim();
+  const stemImage = String(formData.get("stem_image_path") ?? "").trim();
   const explanation = String(formData.get("explanation") ?? "").trim();
   const correct = String(formData.get("correct") ?? "").trim().toUpperCase();
 
@@ -291,29 +303,77 @@ export async function updateQuestion(
     return { error: "Choose a valid exam type (daily, weekly, or mock)." };
   }
 
-  const options: QuestionOption[] = OPTION_LABELS.map((label) => ({
-    label,
-    text: String(formData.get(`option_${label.toLowerCase()}`) ?? "").trim(),
-  })).filter((o) => o.text);
+  const options: QuestionOption[] = OPTION_LABELS.map((label) => {
+    const text = String(formData.get(`option_${label.toLowerCase()}`) ?? "").trim();
+    const image = String(formData.get(`option_${label.toLowerCase()}_image_path`) ?? "").trim();
+    // Keys are omitted rather than stored empty so the jsonb stays clean and
+    // `image_path in opt` remains a meaningful check on the client.
+    return {
+      label,
+      ...(text ? { text } : {}),
+      ...(image ? { image_path: image } : {}),
+    };
+  }).filter((o) => o.text || o.image_path);
+
   if (options.length < 2) return { error: "At least 2 options are required." };
   if (!OPTION_LABELS.includes(correct as OptionLabel)) {
     return { error: "Correct answer must be A–E." };
   }
   if (!options.some((o) => o.label === correct)) {
-    return { error: `Correct answer ${correct} has no matching option text.` };
+    return { error: `Correct answer ${correct} has no matching option.` };
   }
 
-  const { error } = await supabase
-    .from("questions")
-    .update({
+  return {
+    row: {
       subject_id,
       category: category as ExamCategory,
       stem,
+      stem_image_path: stemImage || null,
       options,
       correct_label: correct,
       explanation: explanation || null,
-    })
-    .eq("id", id);
+    },
+  };
+}
+
+/**
+ * Create a single question by hand.
+ *
+ * Until images existed, CSV import was the only way to add a question — which
+ * doesn't work for Perceptual Acuity, where a question is mostly figures.
+ */
+export async function createQuestion(
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  const profile = await requireAdmin();
+  const supabase = await createClient();
+
+  const parsed = parseQuestionForm(formData);
+  if ("error" in parsed) return parsed;
+
+  const { error } = await supabase
+    .from("questions")
+    .insert({ ...parsed.row, created_by: profile.id });
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/questions");
+  revalidatePath("/admin");
+  return { message: "Question created." };
+}
+
+export async function updateQuestion(
+  id: string,
+  _prev: FormState,
+  formData: FormData
+): Promise<FormState> {
+  await requireAdmin();
+  const supabase = await createClient();
+
+  const parsed = parseQuestionForm(formData);
+  if ("error" in parsed) return parsed;
+
+  const { error } = await supabase.from("questions").update(parsed.row).eq("id", id);
   if (error) return { error: error.message };
 
   revalidatePath("/admin/questions");

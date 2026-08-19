@@ -5,14 +5,17 @@ import { useRouter } from "next/navigation";
 import { saveAnswer, submitAttempt, revealAnswer } from "@/lib/exam";
 import ExpiredAttempt from "@/components/ExpiredAttempt";
 import { categoryLabel, type ExamCategory } from "@/lib/categories";
-import type { ExamMode, OptionLabel, QuestionOption } from "@/lib/types";
+import QuestionFigure from "@/components/QuestionFigure";
+import type { ExamMode, OptionLabel, SignedQuestionOption } from "@/lib/types";
 
 type RunnerQuestion = {
   attempt_question_id: string;
   subject_name: string;
   item_no: number;
   stem: string;
-  options: QuestionOption[];
+  /** Signed by the server; never a raw storage path. */
+  stem_image_url: string | null;
+  options: SignedQuestionOption[];
   selected_label: OptionLabel | null;
   /** Already revealed in an earlier sitting — stays locked across a resume. */
   revealed: boolean;
@@ -460,6 +463,7 @@ export default function ExamRunner({
           Q{index + 1} · {q.subject_name}
         </p>
         <p className="whitespace-pre-wrap text-[15px] font-medium">{q.stem}</p>
+        <QuestionFigure url={q.stem_image_url} variant="stem" alt="Figure for this question" />
 
         <div className="mt-4 space-y-2">
           {q.options.map((opt) => {
@@ -482,7 +486,13 @@ export default function ExamRunner({
                 }`}
               >
                 <span className="font-semibold">{opt.label}.</span>
-                <span>{opt.text}</span>
+                {/* Perceptual Acuity choices are often a figure with no text at
+                    all, so the label above carries the accessible name and the
+                    image is left presentational. */}
+                <span className="min-w-0">
+                  {opt.text && <span>{opt.text}</span>}
+                  <QuestionFigure url={opt.image_url} variant="option" />
+                </span>
               </button>
             );
           })}

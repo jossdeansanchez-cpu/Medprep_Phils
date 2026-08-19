@@ -79,7 +79,12 @@ export default async function QuestionsPage({
 
   return (
     <div className="space-y-4">
-      <h1 className="text-xl font-semibold">Questions</h1>
+      <div className="flex items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold">Questions</h1>
+        <Link href="/admin/questions/new" className="btn-primary text-sm">
+          New question
+        </Link>
+      </div>
 
       {/* Track filter — each track is a separate bank */}
       <div className="flex flex-wrap items-center gap-1.5">
