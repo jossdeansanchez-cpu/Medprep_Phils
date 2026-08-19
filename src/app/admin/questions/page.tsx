@@ -79,11 +79,42 @@ export default async function QuestionsPage({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-xl font-semibold">Questions</h1>
-        <Link href="/admin/questions/new" className="btn-primary text-sm">
-          New question
-        </Link>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold">
+          Question Bank
+          <span className="ml-2 badge bg-black/[0.06]">{TRACK_LABELS[activeTrack]}</span>
+        </h1>
+        <div className="flex items-center gap-2">
+          {/* Track rides along so the create form opens on the bank you're
+              already looking at, rather than defaulting back to PLE. */}
+          <Link
+            href={`/admin/questions/new?track=${activeTrack}`}
+            className="btn-primary text-sm"
+          >
+            + New question
+          </Link>
+          <Link href="/admin/upload" className="btn-outline text-sm">
+            Bulk upload CSV
+          </Link>
+        </div>
+      </div>
+
+      {/* The two authoring routes do different jobs, and which to use isn't
+          guessable — CSV physically cannot carry a figure. */}
+      <div className="rounded-xl border border-[var(--border)] bg-black/[0.02] px-4 py-3 text-sm">
+        <p className="font-medium">Two ways to add questions</p>
+        <ul className="mt-1 space-y-1 text-[var(--muted)]">
+          <li>
+            <strong className="text-[var(--fg)]">+ New question</strong> — one at a
+            time, and the <strong className="text-[var(--fg)]">only way to attach
+            images</strong>. Use this for NMAT Perceptual Acuity, where the stem and
+            the answer choices are figures.
+          </li>
+          <li>
+            <strong className="text-[var(--fg)]">Bulk upload CSV</strong> — many
+            text-only questions at once. A spreadsheet can&apos;t carry images.
+          </li>
+        </ul>
       </div>
 
       {/* Track filter — each track is a separate bank */}
@@ -158,11 +189,27 @@ export default async function QuestionsPage({
       </p>
 
       {questions.length === 0 ? (
-        <div className="card text-sm text-[var(--muted)]">
-          No questions match.{" "}
-          <Link href="/admin/upload" className="text-[var(--primary)] underline">
-            Upload some.
-          </Link>
+        <div className="card text-sm">
+          <p className="font-medium">
+            No {TRACK_LABELS[activeTrack]} questions
+            {activeSubject ? ` in ${activeSubject.name}` : ""} yet.
+          </p>
+          <p className="mt-1 text-[var(--muted)]">
+            {activeTrack === "nmat"
+              ? "Perceptual Acuity items need figures — build those one at a time. Verbal, Quantitative and the other text subjects can come from a spreadsheet."
+              : "Add one by hand, or bring in a batch from a spreadsheet."}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Link
+              href={`/admin/questions/new?track=${activeTrack}`}
+              className="btn-primary text-sm"
+            >
+              + New question
+            </Link>
+            <Link href="/admin/upload" className="btn-outline text-sm">
+              Bulk upload CSV
+            </Link>
+          </div>
         </div>
       ) : (
         <div className="card divide-y divide-[var(--border)] p-0">

@@ -107,6 +107,9 @@ export const navItems: NavItem[] = [
   {
     href: "/admin/questions",
     label: "Question Bank",
+    // Exact, or the prefix match would light this up on /admin/questions/new and
+    // both question entries would read as active at once.
+    exact: true,
     adminOnly: true,
     icon: (
       <svg className={ICON} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -116,8 +119,23 @@ export const navItems: NavItem[] = [
     ),
   },
   {
+    // The only route that can attach figures, so it earns its own nav entry
+    // rather than hiding as a button inside the Question Bank.
+    href: "/admin/questions/new",
+    label: "New question (+ images)",
+    adminOnly: true,
+    icon: (
+      <svg className={ICON} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <rect x="3" y="3" width="18" height="14" rx="2" />
+        <circle cx="8.5" cy="8.5" r="1.5" />
+        <path d="M21 13l-5-4-5 5-2-2-6 5" />
+        <path d="M18 19v4M16 21h4" />
+      </svg>
+    ),
+  },
+  {
     href: "/admin/upload",
-    label: "Upload",
+    label: "Bulk upload (CSV)",
     adminOnly: true,
     icon: (
       <svg className={ICON} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">

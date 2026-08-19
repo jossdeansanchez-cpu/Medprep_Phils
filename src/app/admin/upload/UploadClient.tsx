@@ -128,8 +128,19 @@ export default function UploadClient({ subjects }: { subjects: Subject[] }) {
 
   return (
     <div className="space-y-5">
+      {/* Anyone arriving here to add a Perceptual Acuity item is in the wrong
+          place, and nothing on this page would otherwise tell them. */}
+      <div className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        A spreadsheet can&apos;t carry images. For questions with figures — NMAT
+        Perceptual Acuity especially —{" "}
+        <a href="/admin/questions/new?track=nmat" className="font-semibold underline">
+          add them one at a time instead
+        </a>
+        .
+      </div>
+
       <div>
-        <h1 className="text-xl font-semibold">Upload question bank</h1>
+        <h1 className="text-xl font-semibold">Bulk upload (text-only)</h1>
         <p className="text-sm text-[var(--muted)]">
           CSV or Excel with columns: {CSV_HEADERS.join(", ")}. <code>subject</code> must
           match one of the {trackSubjects.length} {TRACK_LABELS[track]} subjects (e.g.
