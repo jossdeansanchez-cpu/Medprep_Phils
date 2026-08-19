@@ -6,6 +6,7 @@ import ResetPassword from "./ResetPassword";
 import ResetLink from "./ResetLink";
 import type { PlanTier } from "@/lib/billing/plans";
 import { DEVICE_LIMITS } from "@/lib/devices";
+import { trackLabel, type ExamTrack } from "@/lib/tracks";
 
 type StudentRow = {
   id: string;
@@ -18,7 +19,39 @@ type StudentRow = {
   current_period_end: string | null;
   device_count: number;
   created_at: string;
+  /** The exam this student is preparing for. */
+  track: ExamTrack;
+  /** The exam their payment bought. Null if they've never paid. */
+  plan_track: ExamTrack | null;
 };
+
+/**
+ * Which exam a student is on — and a warning when their plan was bought for the
+ * other one.
+ *
+ * That mismatch is invisible everywhere else and looks exactly like a billing
+ * fault: the student paid, but effective_plan() correctly returns 'free' because
+ * a plan only applies to the track it was bought for. Surfacing it here is what
+ * lets an admin answer "I paid and it's not working" in one glance.
+ */
+function ExamTrack({ s }: { s: StudentRow }) {
+  const mismatch = s.plan_track != null && s.plan_track !== s.track;
+  return (
+    <div>
+      <span className="badge bg-[var(--primary)]/10 text-[var(--primary)]">
+        {trackLabel(s.track)}
+      </span>
+      {mismatch && (
+        <p
+          className="mt-1 text-xs text-amber-700"
+          title={`Their subscription was bought for ${trackLabel(s.plan_track!)}, so it doesn't apply while they're on ${trackLabel(s.track)}.`}
+        >
+          ⚠ paid for {trackLabel(s.plan_track!)}
+        </p>
+      )}
+    </div>
+  );
+}
 
 function DeviceUsage({ s }: { s: StudentRow }) {
   const limit = DEVICE_LIMITS[s.plan];
@@ -99,6 +132,7 @@ export default async function StudentsPage() {
               <thead className="text-xs uppercase tracking-wide text-[var(--muted)]">
                 <tr>
                   <th className="px-4 py-3 font-medium">Student</th>
+                  <th className="px-4 py-3 font-medium">Exam</th>
                   <th className="px-4 py-3 font-medium">Plan</th>
                   <th className="px-4 py-3 font-medium">Subscription</th>
                   <th className="px-4 py-3 font-medium">Devices</th>
@@ -112,6 +146,9 @@ export default async function StudentsPage() {
                     <td className="px-4 py-3">
                       <div className="font-medium">{s.full_name || "Unnamed"}</div>
                       <div className="text-xs text-[var(--muted)]">{s.email}</div>
+                    </td>
+                    <td className="px-4 py-3">
+                      <ExamTrack s={s} />
                     </td>
                     <td className="px-4 py-3">
                       <PlanSelect userId={s.id} plan={s.plan} />

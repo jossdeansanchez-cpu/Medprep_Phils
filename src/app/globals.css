@@ -1,11 +1,11 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7f8fa;
+  --background: #eef4fb;
   --foreground: #15181d;
   --card: #ffffff;
-  --border: #e3e6ea;
-  --muted: #687078;
+  --border: #d8e3f0;
+  --muted: #5f6771;
   --primary: #0d7a5f;
   --primary-foreground: #ffffff;
   --danger: #c0392b;
@@ -61,9 +61,9 @@ body {
   /* Glassmorphism dashboard shell */
   .app-gradient {
     background:
-      radial-gradient(1200px 600px at 0% 0%, #cfe9df 0%, transparent 55%),
-      radial-gradient(1000px 700px at 100% 30%, #d9d4f2 0%, transparent 55%),
-      linear-gradient(120deg, #d7ece2 0%, #dfe4ee 45%, #e4ddf3 100%);
+      radial-gradient(1200px 600px at 0% 0%, #cfe4f6 0%, transparent 55%),
+      radial-gradient(1000px 700px at 100% 30%, #d6ebe2 0%, transparent 55%),
+      linear-gradient(120deg, #dbe9f7 0%, #e4eef8 45%, #e9f1f9 100%);
   }
   .glass {
     @apply rounded-2xl border border-white/60 bg-white/55 shadow-[0_8px_30px_rgba(20,40,40,0.06)] backdrop-blur-xl;
@@ -84,9 +84,9 @@ body {
   /* Landing: soft mint→white field, emerald-forward (no AI-purple) */
   .hero-field {
     background:
-      radial-gradient(900px 480px at 12% -8%, #d2ede0 0%, transparent 60%),
-      radial-gradient(760px 520px at 100% 0%, #e7f3ec 0%, transparent 55%),
-      linear-gradient(180deg, #f3f9f5 0%, var(--background) 70%);
+      radial-gradient(900px 480px at 12% -8%, #d3e6f7 0%, transparent 60%),
+      radial-gradient(760px 520px at 100% 0%, #e3f1ea 0%, transparent 55%),
+      linear-gradient(180deg, #f2f7fd 0%, var(--background) 70%);
   }
 }
 

@@ -17,9 +17,6 @@ export default async function SignupPage({
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4">
       <AuthForm mode="signup" defaultTrack={coerceTrack(track)} />
-      <p className="mt-4 text-center text-xs text-[var(--muted)]">
-        The first account created becomes the administrator.
-      </p>
     </main>
   );
 }
