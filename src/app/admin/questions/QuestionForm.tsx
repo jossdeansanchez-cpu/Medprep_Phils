@@ -186,6 +186,7 @@ export default function QuestionForm({
 
       {state?.error && <p className="text-sm text-[var(--danger)]">{state.error}</p>}
       {state?.message && <p className="text-sm text-[var(--primary)]">{state.message}</p>}
+      {state?.warning && <p className="text-sm text-amber-700">⚠ {state.warning}</p>}
 
       <div className="flex items-center gap-3">
         <button type="submit" className="btn-primary" disabled={pending}>
