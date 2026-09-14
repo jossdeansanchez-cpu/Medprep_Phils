@@ -65,6 +65,12 @@ export default async function ExamCard({
         <Link href="/pricing" className="btn-primary w-full whitespace-nowrap">
           ✦ {isMock ? "Unlock mock exams" : "Upgrade to continue"}
         </Link>
+      ) : t.track === "nmat" ? (
+        // NMAT exams open their directions first; the attempt (and its timer)
+        // is only created when the student presses Begin there.
+        <Link href={`/exams/${t.id}/directions`} className="btn-primary w-full">
+          Start
+        </Link>
       ) : (
         <form action={startAttempt.bind(null, t.id)}>
           <button type="submit" className="btn-primary w-full">
