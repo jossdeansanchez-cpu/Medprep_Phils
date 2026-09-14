@@ -9,6 +9,7 @@ import {
   type ExamCategory,
 } from "@/lib/categories";
 import { TRACK_ORDER, TRACK_LABELS, coerceTrack } from "@/lib/tracks";
+import { LONG_ANSWER_RATIO } from "@/lib/answer-length";
 import type { QuestionOption, Subject } from "@/lib/types";
 
 type QRow = {
@@ -20,6 +21,9 @@ type QRow = {
   category: ExamCategory;
   created_at: string;
   subjects: { name: string } | null;
+  /** Generated in the database (migration 0044); null when there's nothing to compare. */
+  correct_answer_length_ratio: number | null;
+  has_long_correct_answer: boolean;
 };
 
 function isCategory(v: string | undefined): v is ExamCategory {
@@ -29,9 +33,10 @@ function isCategory(v: string | undefined): v is ExamCategory {
 export default async function QuestionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ subject?: string; category?: string; track?: string }>;
+  searchParams: Promise<{ subject?: string; category?: string; track?: string; flag?: string }>;
 }) {
-  const { subject, category, track } = await searchParams;
+  const { subject, category, track, flag } = await searchParams;
+  const longOnly = flag === "long-answer";
   const supabase = await createClient();
 
   // Each track has its own bank, so one is always selected rather than showing
@@ -46,7 +51,7 @@ export default async function QuestionsPage({
   const activeCategory = isCategory(category) ? category : undefined;
 
   // Preserve the other filters when building a filter link.
-  const linkWith = (next: { subject?: string; category?: string; track?: string }) => {
+  const linkWith = (next: { subject?: string; category?: string; track?: string; flag?: string }) => {
     const params = new URLSearchParams();
     // Switching track invalidates the subject filter — that subject belongs to
     // the track being left.
@@ -54,9 +59,11 @@ export default async function QuestionsPage({
     const sub = switchingTrack ? "" : (next.subject ?? activeSubject?.slug);
     const cat = next.category ?? activeCategory;
     const trk = next.track ?? activeTrack;
+    const flg = next.flag ?? (longOnly ? "long-answer" : "");
     if (sub) params.set("subject", sub);
     if (cat) params.set("category", cat);
     if (trk) params.set("track", trk);
+    if (flg) params.set("flag", flg);
     const qs = params.toString();
     return `/admin/questions${qs ? `?${qs}` : ""}`;
   };
@@ -65,16 +72,28 @@ export default async function QuestionsPage({
     .from("questions")
     // !inner so the track filter on the joined row actually restricts the result.
     .select(
-      "id, stem, options, correct_label, is_active, category, created_at, subjects!inner(name, track)"
+      "id, stem, options, correct_label, is_active, category, created_at, correct_answer_length_ratio, has_long_correct_answer, subjects!inner(name, track)"
     )
     .is("deleted_at", null) // hide deleted questions; their row is kept for history
     .eq("subjects.track", activeTrack)
-    .order("created_at", { ascending: false })
     .limit(300);
   if (activeSubject) query = query.eq("subject_id", activeSubject.id);
   if (activeCategory) query = query.eq("category", activeCategory);
+  // Worst gaps first, so a rewrite session starts where it matters most.
+  query = longOnly
+    ? query
+        .eq("has_long_correct_answer", true)
+        .order("correct_answer_length_ratio", { ascending: false })
+    : query.order("created_at", { ascending: false });
 
-  const { data } = await query;
+  const longCountQuery = supabase
+    .from("questions")
+    .select("id, subjects!inner(track)", { count: "exact", head: true })
+    .is("deleted_at", null)
+    .eq("subjects.track", activeTrack)
+    .eq("has_long_correct_answer", true);
+
+  const [{ data }, { count: longCount }] = await Promise.all([query, longCountQuery]);
   const questions = (data ?? []) as unknown as QRow[];
 
   return (
@@ -183,6 +202,35 @@ export default async function QuestionsPage({
         ))}
       </div>
 
+      {/* A correct option far longer than the rest gives the item away. The
+          database keeps the flag current on every save (migration 0044). */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span className="mr-1 text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
+          Check
+        </span>
+        <Link
+          href={linkWith({ flag: "" })}
+          className={`badge ${!longOnly ? "bg-[var(--primary)] text-white" : "bg-black/[0.05]"}`}
+        >
+          All
+        </Link>
+        <Link
+          href={linkWith({ flag: "long-answer" })}
+          className={`badge ${longOnly ? "bg-amber-600 text-white" : "bg-amber-100 text-amber-700"}`}
+        >
+          Correct answer much longer ({longCount ?? 0})
+        </Link>
+      </div>
+
+      {longOnly && (
+        <p className="rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          The correct choice in these questions is at least {LONG_ANSWER_RATIO}× longer than
+          every wrong one, so students can pick it without reading the stem. Rewrite the wrong
+          choices to a similar length and level of detail, or trim the correct one. Largest
+          gaps first.
+        </p>
+      )}
+
       <p className="text-xs text-[var(--muted)]">
         {questions.length} question{questions.length === 1 ? "" : "s"}. Set each question&apos;s
         exam type so it&apos;s drawn into the matching exams.
@@ -225,6 +273,14 @@ export default async function QuestionsPage({
                   })}
                   {!q.is_active && (
                     <span className="badge ml-2 bg-black/[0.06]">inactive</span>
+                  )}
+                  {q.has_long_correct_answer && (
+                    <span className="badge ml-2 bg-amber-100 text-amber-700">
+                      correct answer{" "}
+                      {q.correct_answer_length_ratio
+                        ? `${q.correct_answer_length_ratio}× longer`
+                        : "much longer"}
+                    </span>
                   )}
                 </p>
                 <p className="truncate text-sm font-medium">{q.stem}</p>

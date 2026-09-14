@@ -17,6 +17,7 @@ import {
   type ExamTrack,
 } from "@/lib/tracks";
 import type { Subject } from "@/lib/types";
+import { checkAnswerLength } from "@/lib/answer-length";
 
 const SAMPLES: Record<ExamTrack, string> = {
   ple: [
@@ -33,6 +34,20 @@ const SAMPLES: Record<ExamTrack, string> = {
   ].join("\n"),
 };
 
+/**
+ * Excel's plain "CSV" format writes Windows-1252, not UTF-8. Parsing that as
+ * UTF-8 turned every ’ – ° ö β into an unrecoverable \uFFFD — 669 fields in the
+ * bank before migration 0043. Decode strictly as UTF-8 and fall back to 1252.
+ */
+async function readCsvText(file: File): Promise<string> {
+  const buf = await file.arrayBuffer();
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(buf);
+  } catch {
+    return new TextDecoder("windows-1252").decode(buf);
+  }
+}
+
 export default function UploadClient({ subjects }: { subjects: Subject[] }) {
   const [track, setTrack] = useState<ExamTrack>(DEFAULT_TRACK);
   const [fileName, setFileName] = useState<string | null>(null);
@@ -48,6 +63,13 @@ export default function UploadClient({ subjects }: { subjects: Subject[] }) {
   // uploaded under the wrong track reports "unknown subject" instead of quietly
   // filing NMAT questions under a PLE subject. The server repeats this.
   const trackSubjects = subjects.filter((s) => s.track === track);
+
+  // A warning, not an error: some long correct answers are legitimate, but most
+  // let a student pick the answer without reading the question.
+  const lengthFlags = result
+    ? result.valid.map((q) => checkAnswerLength(q.options, q.correct_label))
+    : [];
+  const longCount = lengthFlags.filter((f) => f.long).length;
 
   /** Re-check an already-loaded file against the newly chosen track's subjects. */
   function changeTrack(next: ExamTrack) {
@@ -85,12 +107,11 @@ export default function UploadClient({ subjects }: { subjects: Subject[] }) {
 
     try {
       if (file.name.toLowerCase().endsWith(".csv")) {
-        Papa.parse<RawRow>(file, {
+        const res = Papa.parse<RawRow>(await readCsvText(file), {
           header: true,
           skipEmptyLines: true,
-          complete: (res) => ingest(res.data),
-          error: (err) => setParseError(err.message),
         });
+        ingest(res.data);
       } else {
         const buf = await file.arrayBuffer();
         const wb = XLSX.read(buf);
@@ -218,6 +239,11 @@ export default function UploadClient({ subjects }: { subjects: Subject[] }) {
                 </span>
               )
             )}
+            {longCount > 0 && (
+              <span className="badge bg-amber-100 text-amber-700">
+                {longCount} with a giveaway-length answer
+              </span>
+            )}
             <span className="text-sm text-[var(--muted)]">{result.total} total rows</span>
             <button
               onClick={commit}
@@ -281,6 +307,17 @@ export default function UploadClient({ subjects }: { subjects: Subject[] }) {
                                 question: “{matches[0].stem.slice(0, 80)}
                                 {matches[0].stem.length > 80 ? "…" : ""}”
                                 {matches.length > 1 ? ` (+${matches.length - 1} more match)` : ""}
+                              </p>
+                            </td>
+                          </tr>
+                        )}
+                        {lengthFlags[i]?.long && (
+                          <tr>
+                            <td colSpan={5} className="pb-1.5 pl-1">
+                              <p className="rounded-lg bg-amber-50 px-2 py-1 text-xs text-amber-700">
+                                ⚠ The correct answer is {lengthFlags[i].ratio}× longer than any
+                                other choice, so students can pick it without reading. Rewrite
+                                the wrong choices to a similar length.
                               </p>
                             </td>
                           </tr>

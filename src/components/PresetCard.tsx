@@ -99,6 +99,10 @@ export default function PresetCard({
         <Link href="/pricing" className="btn-primary w-full whitespace-nowrap">
           ✦ Unlock Quiz Maker
         </Link>
+      ) : preset.track === "nmat" ? (
+        <Link href={`/exams/${preset.id}/directions`} className="btn-primary w-full">
+          Start
+        </Link>
       ) : (
         <form action={startAttempt.bind(null, preset.id)}>
           <button type="submit" className="btn-primary w-full">

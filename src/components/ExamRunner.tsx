@@ -6,6 +6,8 @@ import { saveAnswer, submitAttempt, revealAnswer } from "@/lib/exam";
 import ExpiredAttempt from "@/components/ExpiredAttempt";
 import { categoryLabel, type ExamCategory } from "@/lib/categories";
 import QuestionFigure from "@/components/QuestionFigure";
+import ExamDirections from "@/components/ExamDirections";
+import type { PartDirections } from "@/lib/nmat-directions";
 import type { ExamMode, OptionLabel, SignedQuestionOption } from "@/lib/types";
 
 type RunnerQuestion = {
@@ -43,6 +45,7 @@ export default function ExamRunner({
   category,
   deadlineMs,
   questions,
+  directions = null,
   isIosApp = false,
 }: {
   attemptId: string;
@@ -51,6 +54,8 @@ export default function ExamRunner({
   category: ExamCategory;
   deadlineMs: number | null;
   questions: RunnerQuestion[];
+  /** NMAT directions for the subjects in this attempt; null hides the button. */
+  directions?: PartDirections[] | null;
   isIosApp?: boolean;
 }) {
   const isPractice = mode === "practice";
@@ -87,6 +92,7 @@ export default function ExamRunner({
   const [capMessage, setCapMessage] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  const [showDirections, setShowDirections] = useState(false);
   const [confirmExit, setConfirmExit] = useState(false);
   const [confirmSubmit, setConfirmSubmit] = useState(false);
   const submittedRef = useRef(false);
@@ -310,6 +316,17 @@ export default function ExamRunner({
           </p>
         </div>
 
+        {directions && (
+          <button
+            type="button"
+            onClick={() => setShowDirections((v) => !v)}
+            aria-expanded={showDirections}
+            className="btn-ghost h-11 shrink-0 px-2 text-sm"
+          >
+            Directions
+          </button>
+        )}
+
         {remaining != null && (
           <div
             // Don't let a screen reader announce every tick; the label carries
@@ -324,6 +341,24 @@ export default function ExamRunner({
           </div>
         )}
       </div>
+
+      {/* Directions stay reachable mid-exam. The timer keeps running while this
+          is open — it was readable for free before Begin. */}
+      {directions && showDirections && (
+        <div className="glass pop-in mb-4 max-h-[60vh] overflow-y-auto p-5">
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-sm font-medium">Directions</p>
+            <button
+              type="button"
+              onClick={() => setShowDirections(false)}
+              className="btn-ghost h-9 px-2 text-sm"
+            >
+              Close
+            </button>
+          </div>
+          <ExamDirections parts={directions} />
+        </div>
+      )}
 
       {/* Exit confirmation — answers are already saved on every tap, so leaving
           is just navigation. Timed exams keep counting down while away. */}

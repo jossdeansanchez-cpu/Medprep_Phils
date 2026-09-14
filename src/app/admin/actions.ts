@@ -11,8 +11,9 @@ import { sendEmail, emailLayout, emailConfigured, getStudentEmails } from "@/lib
 import { CATEGORY_ORDER, type ExamCategory } from "@/lib/categories";
 import { coerceTrack, parseTrack } from "@/lib/tracks";
 import type { OptionLabel, QuestionOption } from "@/lib/types";
+import { checkAnswerLength } from "@/lib/answer-length";
 
-export type FormState = { error?: string; message?: string } | undefined;
+export type FormState = { error?: string; message?: string; warning?: string } | undefined;
 
 /**
  * Admin: set a student's plan directly, with how long it stays valid.
@@ -337,6 +338,19 @@ function parseQuestionForm(formData: FormData): { row: ParsedQuestion } | { erro
 }
 
 /**
+ * Saving still succeeds — some long correct answers are fine — but the admin
+ * should know when the right choice gives itself away by length.
+ */
+function lengthWarning(row: Pick<ParsedQuestion, "options" | "correct_label">): { warning?: string } {
+  const { long, ratio } = checkAnswerLength(row.options, row.correct_label);
+  return long
+    ? {
+        warning: `The correct answer is ${ratio}× longer than any other choice, so students can pick it without reading. Rewrite the wrong choices to a similar length.`,
+      }
+    : {};
+}
+
+/**
  * Create a single question by hand.
  *
  * Until images existed, CSV import was the only way to add a question — which
@@ -359,7 +373,7 @@ export async function createQuestion(
 
   revalidatePath("/admin/questions");
   revalidatePath("/admin");
-  return { message: "Question created." };
+  return { message: "Question created.", ...lengthWarning(parsed.row) };
 }
 
 export async function updateQuestion(
@@ -378,7 +392,7 @@ export async function updateQuestion(
 
   revalidatePath("/admin/questions");
   revalidatePath(`/admin/questions/${id}/edit`);
-  return { message: "Question updated." };
+  return { message: "Question updated.", ...lengthWarning(parsed.row) };
 }
 
 export async function createAnnouncement(formData: FormData) {

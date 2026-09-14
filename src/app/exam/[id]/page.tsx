@@ -8,6 +8,7 @@ import { checkDevice } from "@/lib/devices";
 import { attemptDeadlineMs, isAttemptExpired } from "@/lib/attempt-expiry";
 import { isIosApp } from "@/lib/platform/server";
 import { withSignedImages, examImageTtl } from "@/lib/images";
+import { nmatDirectionsFor } from "@/lib/nmat-directions";
 import type { ExamMode, OptionLabel, QuestionOption } from "@/lib/types";
 import type { ExamCategory } from "@/lib/categories";
 
@@ -105,6 +106,13 @@ export default async function ExamPage({
     examImageTtl(template.time_limit_minutes)
   );
 
+  // Directions for whichever subjects this attempt drew. Null for PLE.
+  const subjectIds = [...new Set(rows.map((r) => r.subject_id))];
+  const { data: subjectRows } = subjectIds.length
+    ? await supabase.from("subjects").select("slug, name, order, track").in("id", subjectIds)
+    : { data: [] };
+  const directions = nmatDirectionsFor(subjectRows ?? []);
+
   return (
     <ExamRunner
       attemptId={id}
@@ -113,6 +121,7 @@ export default async function ExamPage({
       category={template.category}
       deadlineMs={deadlineMs}
       questions={withImages}
+      directions={directions}
       isIosApp={await isIosApp()}
     />
   );
