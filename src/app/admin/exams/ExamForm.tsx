@@ -298,7 +298,7 @@ export default function ExamForm({
         Choose <strong>Total for the exam</strong> to set one overall question count (drawn
         across the chosen subjects), or <strong>Per subject</strong> to draw a fixed number from
         each subject. All categories are timed and scored; leave the time limit blank for
-        untimed. Mock exams require a Pro plan; daily and weekly practice are open to all.
+        untimed. Mock exams need a paid plan; daily and weekly practice are open to all.
       </p>
     </form>
   );

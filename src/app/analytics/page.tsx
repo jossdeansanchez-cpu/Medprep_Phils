@@ -20,12 +20,12 @@ export default async function AnalyticsPage() {
         <div className="mx-auto max-w-xl">
           <UpgradeGate
             web={{
-              title: "Analytics is a Max Pro feature",
-              body: "Upgrade to Max Pro to track your scores over time and spot weak subjects.",
+              title: "Analytics is a Premium feature",
+              body: "Upgrade to Premium to track your scores over time and spot weak subjects.",
             }}
             ios={{
               title: "Analytics isn't included in your plan",
-              body: "Tracking scores over time and weak-subject insights come with the Max Pro plan.",
+              body: "Tracking scores over time and weak-subject insights come with Premium.",
             }}
           />
         </div>

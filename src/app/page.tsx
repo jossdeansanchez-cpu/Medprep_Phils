@@ -252,7 +252,7 @@ export default async function Home() {
               Start free. Upgrade when you&apos;re ready.
             </h2>
             <p className="mt-3 max-w-md text-[var(--muted)]">
-              Practice free every day. Unlock unlimited mock exams and analytics with a plan.
+              Practice free every day. Unlock unlimited mock exams, analytics and everything else with Premium.
             </p>
             <div className="mt-6 flex items-center gap-3">
               <Link href="/signup" className="btn-primary px-5 py-2.5 text-base">

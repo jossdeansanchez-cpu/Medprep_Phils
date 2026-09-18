@@ -176,8 +176,7 @@ export default async function StudentsPage() {
           </div>
         )}
         <p className="mt-3 text-xs text-[var(--muted)]">
-          Use the <strong>Plan</strong> dropdown to grant a subscription (pick Basic / Pro / Max
-          Pro for free comped access) or cancel one (pick Free). <strong>Reset password</strong>{" "}
+          Use the <strong>Plan</strong> dropdown to grant a subscription (pick Premium for free comped access — Basic and Pro are only for students already on them) or cancel one (pick Free). <strong>Reset password</strong>{" "}
           sets a new temporary password you can share with a student who&apos;s locked out.
           Removing a student permanently deletes their account and all their attempts.
         </p>

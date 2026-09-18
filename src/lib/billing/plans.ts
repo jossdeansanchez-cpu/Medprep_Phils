@@ -48,45 +48,30 @@ export interface PlanDef {
   highlighted?: boolean;
 }
 
+/**
+ * The only plan on sale. Basic and Pro are no longer sold, but they stay in
+ * PLAN_TIERS and in the database: students who bought them keep them until
+ * their year runs out, and renewing either one lands on Premium.
+ *
+ * Premium is the old Max Pro tier under a new name, so nothing about existing
+ * Max Pro subscriptions changes.
+ */
+export const PREMIUM_TIER: PlanTier = "max_pro";
+
 export const PLANS: PlanDef[] = [
   {
-    tier: "basic",
-    name: "Basic",
-    blurb: "Unlimited practice",
-    price: 499,
-    features: [
-      "Unlimited daily & weekly exams",
-      "2 mock exams per month",
-      "Resources: books, PDFs & review materials",
-      SUBJECTS_FEATURE,
-      "Instant answer explanations",
-      "Saved practice history",
-    ],
-  },
-  {
-    tier: "pro",
-    name: "Pro",
-    blurb: "Exam ready",
-    price: 699,
-    highlighted: true,
-    features: [
-      "Everything in Basic",
-      "Quiz Maker — build your own custom-length exams",
-      "10 mock exams per month",
-      "Full results & per-subject review",
-      "Up to 2 devices",
-    ],
-  },
-  {
     tier: "max_pro",
-    name: "Max Pro",
+    name: "Premium",
     blurb: "Everything, unlimited",
     price: 799,
     features: [
-      "Everything in Pro",
-      "Unlimited mock exams",
-      "Analytics dashboard",
-      "Weak-subject insights",
+      "Unlimited daily, weekly & mock exams",
+      SUBJECTS_FEATURE,
+      "Quiz Maker — build your own custom-length exams",
+      "Instant answer explanations",
+      "Full results & per-subject review",
+      "Analytics & weak-subject insights",
+      "Resources: books, PDFs & review materials",
       "Up to 3 devices",
     ],
   },
@@ -122,5 +107,5 @@ export function planByTier(tier: PlanTier, track: ExamTrack = DEFAULT_TRACK): Pl
 }
 
 export function planLabel(tier: PlanTier): string {
-  return tier === "max_pro" ? "Max Pro" : tier.charAt(0).toUpperCase() + tier.slice(1);
+  return tier === "max_pro" ? "Premium" : tier.charAt(0).toUpperCase() + tier.slice(1);
 }

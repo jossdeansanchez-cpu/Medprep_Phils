@@ -34,7 +34,7 @@ export default function PricingClient({
           <Link href={signedIn ? "/dashboard" : "/"} className="text-sm text-[var(--muted)] hover:underline">
             ← Back
           </Link>
-          <h1 className="mt-2 text-3xl font-bold tracking-tight">Choose your plan</h1>
+          <h1 className="mt-2 text-3xl font-bold tracking-tight">One plan. Everything included.</h1>
           <p className="mt-2 text-[var(--muted)]">
             Pass the {TRACK_FULL_NAMES[active]} with focused practice and full mock exams.
           </p>
@@ -66,7 +66,7 @@ export default function PricingClient({
           )}
         </div>
 
-        <div className="stagger grid gap-5 md:grid-cols-3">
+        <div className="stagger mx-auto grid max-w-md gap-5">
           {plans.map((p) => {
             const price = p.price;
             const isCurrent = currentPlan === p.tier;
@@ -112,7 +112,7 @@ export default function PricingClient({
                     </Link>
                   ) : (
                     <Link href={`/checkout?plan=${p.tier}`} className="btn-primary w-full">
-                      {`Choose ${p.name}`}
+                      {currentPlan === "free" ? `Get ${p.name}` : `Upgrade to ${p.name}`}
                     </Link>
                   )}
                 </div>
@@ -122,9 +122,8 @@ export default function PricingClient({
         </div>
 
         <p className="mt-6 text-center text-xs text-[var(--muted)]">
-          Free plan: 1 daily or weekly practice exam per month — mock exams need a paid plan.
-          Paid plans are billed once a year, and exam allowances still reset on the 1st of
-          every month. No auto-charge — nothing renews unless you pay again.
+          Free accounts get 1 daily or weekly practice exam per month and no mock exams.
+          Premium is paid once a year. No auto-charge — nothing renews unless you pay again.
         </p>
       </div>
     </main>
