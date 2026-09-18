@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import { getCurrentProfile } from "@/lib/auth";
 import { getEntitlements } from "@/lib/billing/entitlements";
-import { planLabel, PREMIUM_TIER } from "@/lib/billing/plans";
+import { planLabel, renewalTier } from "@/lib/billing/plans";
 import { listMyDevices, deviceLabel, DEVICE_LIMITS } from "@/lib/devices";
 import { removeDevice } from "./actions";
 import DeleteAccount from "./DeleteAccount";
@@ -36,6 +36,7 @@ export default async function AccountPage({
 
   const ent = await getEntitlements();
   const isPaid = ent.plan !== "free";
+  const renewTo = renewalTier(ent.plan, profile.track);
   const iosApp = await isIosApp();
   const devices = await listMyDevices();
   const maxDevices = profile.role === "admin" ? null : DEVICE_LIMITS[ent.plan];
@@ -60,7 +61,7 @@ export default async function AccountPage({
         <section className="glass p-6">
           <p className="text-xs uppercase tracking-wide text-[var(--muted)]">Current plan</p>
           <div className="mt-1 flex items-center gap-3">
-            <span className="text-2xl font-bold">{planLabel(ent.plan)}</span>
+            <span className="text-2xl font-bold">{planLabel(ent.plan, profile.track)}</span>
             <span
               className={`badge ${
                 ent.entitled
@@ -84,10 +85,12 @@ export default async function AccountPage({
           {!iosApp && (
             <div className="mt-5 flex gap-3">
               {isPaid ? (
-                // Basic and Pro can't be bought any more, so renewing either
-                // one renews as Premium.
-                <Link href={`/checkout?plan=${PREMIUM_TIER}`} className="btn-primary">
-                  {ent.plan === PREMIUM_TIER ? "Renew now" : "Renew as Premium"}
+                // Same plan where this track still sells it; otherwise the top
+                // tier (only possible on NMAT, which sells Premium alone).
+                <Link href={`/checkout?plan=${renewTo}`} className="btn-primary">
+                  {renewTo === ent.plan
+                    ? "Renew now"
+                    : `Renew as ${planLabel(renewTo, profile.track)}`}
                 </Link>
               ) : (
                 <Link href="/pricing" className="btn-primary">
@@ -95,7 +98,7 @@ export default async function AccountPage({
                 </Link>
               )}
               <Link href="/pricing" className="btn-ghost">
-                See what&apos;s included
+                View plans
               </Link>
             </div>
           )}
@@ -110,7 +113,7 @@ export default async function AccountPage({
           </p>
           <TrackSwitcher
             current={profile.track}
-            paidPlanLabel={isPaid && ent.entitled ? planLabel(ent.plan) : null}
+            paidPlanLabel={isPaid && ent.entitled ? planLabel(ent.plan, profile.track) : null}
           />
         </section>
 
@@ -124,7 +127,7 @@ export default async function AccountPage({
           </div>
           <p className="mt-1 text-sm text-[var(--muted)]">
             {maxDevices
-              ? `Your ${planLabel(ent.plan)} plan allows ${maxDevices} device${maxDevices === 1 ? "" : "s"}. Remove one to sign in somewhere new.`
+              ? `Your ${planLabel(ent.plan, profile.track)} plan allows ${maxDevices} device${maxDevices === 1 ? "" : "s"}. Remove one to sign in somewhere new.`
               : "Admins are not device-limited."}
           </p>
 

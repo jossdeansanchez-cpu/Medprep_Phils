@@ -49,6 +49,7 @@ export default async function AppShell({
           role={profile.role}
           name={profile.full_name}
           plan={plan}
+          track={profile.track}
           isIosApp={iosApp}
         />
 
@@ -57,6 +58,7 @@ export default async function AppShell({
             role={profile.role}
             name={profile.full_name}
             plan={plan}
+            track={profile.track}
             isIosApp={iosApp}
           />
 

@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
-import { PLANS } from "@/lib/billing/plans";
+import { plansForTrack } from "@/lib/billing/plans";
 import { TRACK_ORDER, TRACK_LABELS, TRACK_FULL_NAMES, type ExamTrack } from "@/lib/tracks";
 
 /** Mirrors the seeded subjects per track (supabase/migrations 0002 and 0037). */
@@ -252,7 +252,7 @@ export default async function Home() {
               Start free. Upgrade when you&apos;re ready.
             </h2>
             <p className="mt-3 max-w-md text-[var(--muted)]">
-              Practice free every day. Unlock unlimited mock exams, analytics and everything else with Premium.
+              Practice free every day. Unlock unlimited mock exams and analytics with a plan.
             </p>
             <div className="mt-6 flex items-center gap-3">
               <Link href="/signup" className="btn-primary px-5 py-2.5 text-base">
@@ -264,10 +264,13 @@ export default async function Home() {
             </div>
           </div>
           <div className="w-full max-w-sm divide-y divide-black/[0.06] rounded-2xl border border-black/[0.06] bg-white">
-            {PLANS.map((p) => (
-              <div key={p.tier} className="flex items-baseline justify-between px-5 py-4">
+            {[
+              ...plansForTrack("ple").map((p) => ({ ...p, label: `PLE ${p.name}` })),
+              ...plansForTrack("nmat").map((p) => ({ ...p, label: `NMAT ${p.name}` })),
+            ].map((p) => (
+              <div key={p.label} className="flex items-baseline justify-between px-5 py-4">
                 <div>
-                  <div className="font-semibold">{p.name}</div>
+                  <div className="font-semibold">{p.label}</div>
                   <div className="text-xs text-[var(--muted)]">{p.blurb}</div>
                 </div>
                 <div className="text-right">
