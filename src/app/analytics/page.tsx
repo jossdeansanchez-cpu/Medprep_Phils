@@ -4,6 +4,7 @@ import UpgradeGate from "@/components/UpgradeGate";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getEntitlements, hasAtLeast } from "@/lib/billing/entitlements";
+import { planLabel } from "@/lib/billing/plans";
 
 type MasteryRow = { subject_name: string; answered: number; pct: number };
 type AttemptRow = { submitted_at: string; general_average: number | null };
@@ -20,12 +21,12 @@ export default async function AnalyticsPage() {
         <div className="mx-auto max-w-xl">
           <UpgradeGate
             web={{
-              title: "Analytics is a Premium feature",
-              body: "Upgrade to Premium to track your scores over time and spot weak subjects.",
+              title: `Analytics is a ${planLabel("max_pro", profile.track)} feature`,
+              body: `Upgrade to ${planLabel("max_pro", profile.track)} to track your scores over time and spot weak subjects.`,
             }}
             ios={{
               title: "Analytics isn't included in your plan",
-              body: "Tracking scores over time and weak-subject insights come with Premium.",
+              body: `Tracking scores over time and weak-subject insights come with ${planLabel("max_pro", profile.track)}.`,
             }}
           />
         </div>

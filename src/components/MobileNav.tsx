@@ -5,27 +5,29 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "@/app/auth/actions";
 import type { Role } from "@/lib/types";
-import { planLabel, type PlanTier } from "@/lib/billing/plans";
+import { planLabel, offersUpgrade, type PlanTier } from "@/lib/billing/plans";
+import { DEFAULT_TRACK, type ExamTrack } from "@/lib/tracks";
 import { visibleNavItems, isActive } from "@/components/nav-items";
 
 export default function MobileNav({
   role,
   name,
   plan = "free",
+  track = DEFAULT_TRACK,
   isIosApp = false,
 }: {
   role: Role;
   name: string | null;
   plan?: PlanTier;
+  /** Decides what the plan is called and which students are offered an upgrade. */
+  track?: ExamTrack;
   isIosApp?: boolean;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const visible = visibleNavItems(role, plan);
   // See Sidebar — suppressed in the iOS app for Guideline 3.1.1.
-  // Premium is the only plan sold, so anyone below it — free, or still on
-  // an old Basic or Pro plan — is offered it.
-  const showUpgrade = !isIosApp && plan !== "max_pro";
+  const showUpgrade = !isIosApp && offersUpgrade(plan, track);
 
   // Close the drawer whenever the route changes.
   useEffect(() => {
@@ -108,7 +110,7 @@ export default function MobileNav({
               >
                 <span>{name || "Account"}</span>
                 <span className="badge bg-[var(--primary)]/10 text-[var(--primary)]">
-                  {planLabel(plan)}
+                  {planLabel(plan, track)}
                 </span>
                 {role === "admin" && <span className="badge bg-black/[0.06]">admin</span>}
               </Link>
@@ -118,7 +120,7 @@ export default function MobileNav({
                   onClick={() => setOpen(false)}
                   className="mb-2 flex items-center gap-3 rounded-xl bg-[var(--primary)]/10 px-3 py-2 text-sm font-medium text-[var(--primary)]"
                 >
-                  ✦ Get Premium
+                  ✦ {track === "nmat" ? "Get Premium" : "Upgrade plan"}
                 </Link>
               )}
               <form action={signOut}>

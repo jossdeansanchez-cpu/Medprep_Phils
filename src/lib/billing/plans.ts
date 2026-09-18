@@ -32,9 +32,7 @@ export const TIER_RANK: Record<PlanTier, number> = {
 };
 
 /**
- * Placeholder swapped per track by plansForTrack(). The tiers, prices and
- * quotas are identical on every track — only the subject-count line differs —
- * so PLANS stays a single array rather than one copy per track.
+ * Placeholder swapped by plansForTrack() for the track's subject-count line.
  */
 const SUBJECTS_FEATURE = "__SUBJECTS__";
 
@@ -48,17 +46,59 @@ export interface PlanDef {
   highlighted?: boolean;
 }
 
-/**
- * The only plan on sale. Basic and Pro are no longer sold, but they stay in
- * PLAN_TIERS and in the database: students who bought them keep them until
- * their year runs out, and renewing either one lands on Premium.
- *
- * Premium is the old Max Pro tier under a new name, so nothing about existing
- * Max Pro subscriptions changes.
- */
-export const PREMIUM_TIER: PlanTier = "max_pro";
+/** The top tier. Sold as "Max Pro" on PLE and as "Premium" on NMAT. */
+export const TOP_TIER: PlanTier = "max_pro";
 
-export const PLANS: PlanDef[] = [
+/**
+ * PLE sells three plans; NMAT sells one. NMAT's Premium is the same top tier
+ * under a different name, so quotas, gating and the database don't differ
+ * between tracks — only what's offered and what it's called.
+ */
+const PLE_PLANS: PlanDef[] = [
+  {
+    tier: "basic",
+    name: "Basic",
+    blurb: "Unlimited practice",
+    price: 499,
+    features: [
+      "Unlimited daily & weekly exams",
+      "2 mock exams per month",
+      "Resources: books, PDFs & review materials",
+      SUBJECTS_FEATURE,
+      "Instant answer explanations",
+      "Saved practice history",
+    ],
+  },
+  {
+    tier: "pro",
+    name: "Pro",
+    blurb: "Exam ready",
+    price: 699,
+    highlighted: true,
+    features: [
+      "Everything in Basic",
+      "Quiz Maker — build your own custom-length exams",
+      "10 mock exams per month",
+      "Full results & per-subject review",
+      "Up to 2 devices",
+    ],
+  },
+  {
+    tier: "max_pro",
+    name: "Max Pro",
+    blurb: "Everything, unlimited",
+    price: 799,
+    features: [
+      "Everything in Pro",
+      "Unlimited mock exams",
+      "Analytics dashboard",
+      "Weak-subject insights",
+      "Up to 3 devices",
+    ],
+  },
+];
+
+const NMAT_PLANS: PlanDef[] = [
   {
     tier: "max_pro",
     name: "Premium",
@@ -77,6 +117,8 @@ export const PLANS: PlanDef[] = [
   },
 ];
 
+const PLANS_BY_TRACK: Record<ExamTrack, PlanDef[]> = { ple: PLE_PLANS, nmat: NMAT_PLANS };
+
 /**
  * Exams allowed per billing period. `null` = unlimited.
  * Mirrors public.plan_exam_limit() in the database, which is the real
@@ -90,13 +132,12 @@ export const EXAM_LIMITS: Record<PlanTier, { mock: number | null; practice: numb
 };
 
 /**
- * The plans as shown to a student on a given track. Same tiers, same prices —
- * only the subject line is track-specific. Use this anywhere plans are rendered
- * or priced; PLANS itself is the untemplated source.
+ * The plans a student on this track can buy — three on PLE, Premium alone on
+ * NMAT. Use this anywhere plans are rendered or priced.
  */
 export function plansForTrack(track: ExamTrack = DEFAULT_TRACK): PlanDef[] {
   const subjects = `All ${TRACK_SUBJECT_COUNT[track]} ${TRACK_LABELS[track]} subjects`;
-  return PLANS.map((p) => ({
+  return PLANS_BY_TRACK[track].map((p) => ({
     ...p,
     features: p.features.map((f) => (f === SUBJECTS_FEATURE ? subjects : f)),
   }));
@@ -106,6 +147,23 @@ export function planByTier(tier: PlanTier, track: ExamTrack = DEFAULT_TRACK): Pl
   return plansForTrack(track).find((p) => p.tier === tier);
 }
 
-export function planLabel(tier: PlanTier): string {
-  return tier === "max_pro" ? "Premium" : tier.charAt(0).toUpperCase() + tier.slice(1);
+export function planLabel(tier: PlanTier, track: ExamTrack = DEFAULT_TRACK): string {
+  if (tier === "max_pro") return track === "nmat" ? "Premium" : "Max Pro";
+  return tier.charAt(0).toUpperCase() + tier.slice(1);
+}
+
+/**
+ * What a renewal buys: the student's own plan where their track still sells
+ * it, otherwise the top tier. Only NMAT drops tiers (it sells Premium alone).
+ */
+export function renewalTier(current: PlanTier, track: ExamTrack): PlanTier {
+  return planByTier(current, track) ? current : TOP_TIER;
+}
+
+/**
+ * Whether the nav shows an upgrade button. PLE nudges only Free and Basic, as it
+ * always has; NMAT has one plan, so anything below it is offered Premium.
+ */
+export function offersUpgrade(plan: PlanTier, track: ExamTrack): boolean {
+  return track === "nmat" ? plan !== TOP_TIER : plan === "free" || plan === "basic";
 }

@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { setStudentPlan } from "@/app/admin/actions";
-import { PLAN_TIERS, planLabel, type PlanTier } from "@/lib/billing/plans";
+import { PLAN_TIERS, planByTier, planLabel, type PlanTier } from "@/lib/billing/plans";
+import type { ExamTrack } from "@/lib/tracks";
 
 /** Preset validity windows, in months. `null` = never expires. */
 const VALIDITY: { value: string; label: string; months: number | null }[] = [
@@ -29,9 +30,12 @@ function monthsFromNow(months: number): string {
 export default function PlanSelect({
   userId,
   plan,
+  track,
 }: {
   userId: string;
   plan: PlanTier;
+  /** Offers only the plans this student's track sells, named the way it names them. */
+  track: ExamTrack;
 }) {
   const [pending, startTransition] = useTransition();
   const [selected, setSelected] = useState<PlanTier>(plan);
@@ -72,9 +76,9 @@ export default function PlanSelect({
         aria-label="Plan"
         className="rounded-lg border border-[var(--border)] bg-white px-2 py-1 text-sm outline-none focus:border-[var(--primary)]"
       >
-        {PLAN_TIERS.map((t) => (
+        {PLAN_TIERS.filter((t) => t === "free" || t === plan || !!planByTier(t, track)).map((t) => (
           <option key={t} value={t}>
-            {planLabel(t)}
+            {planLabel(t, track)}
           </option>
         ))}
       </select>
