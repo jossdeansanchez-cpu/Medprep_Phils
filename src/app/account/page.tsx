@@ -3,7 +3,7 @@ import { redirect } from "next/navigation";
 import AppShell from "@/components/AppShell";
 import { getCurrentProfile } from "@/lib/auth";
 import { getEntitlements } from "@/lib/billing/entitlements";
-import { planLabel } from "@/lib/billing/plans";
+import { planLabel, PREMIUM_TIER } from "@/lib/billing/plans";
 import { listMyDevices, deviceLabel, DEVICE_LIMITS } from "@/lib/devices";
 import { removeDevice } from "./actions";
 import DeleteAccount from "./DeleteAccount";
@@ -84,8 +84,10 @@ export default async function AccountPage({
           {!iosApp && (
             <div className="mt-5 flex gap-3">
               {isPaid ? (
-                <Link href={`/checkout?plan=${ent.plan}`} className="btn-primary">
-                  Renew now
+                // Basic and Pro can't be bought any more, so renewing either
+                // one renews as Premium.
+                <Link href={`/checkout?plan=${PREMIUM_TIER}`} className="btn-primary">
+                  {ent.plan === PREMIUM_TIER ? "Renew now" : "Renew as Premium"}
                 </Link>
               ) : (
                 <Link href="/pricing" className="btn-primary">
@@ -93,7 +95,7 @@ export default async function AccountPage({
                 </Link>
               )}
               <Link href="/pricing" className="btn-ghost">
-                View plans
+                See what&apos;s included
               </Link>
             </div>
           )}

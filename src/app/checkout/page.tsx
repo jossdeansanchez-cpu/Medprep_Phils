@@ -2,7 +2,7 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { isIosApp } from "@/lib/platform/server";
-import { plansForTrack, PLAN_TIERS, type PlanTier } from "@/lib/billing/plans";
+import { plansForTrack, PLAN_TIERS, PREMIUM_TIER, type PlanTier } from "@/lib/billing/plans";
 import { trackLabel } from "@/lib/tracks";
 import CheckoutForm from "./CheckoutForm";
 
@@ -28,7 +28,10 @@ export default async function CheckoutPage({
 
   // The track comes from the profile, matching what create-intent will stamp on
   // the payment — so the buyer sees exactly what they're about to unlock.
-  const planDef = plansForTrack(profile.track).find((p) => p.tier === plan)!;
+  // Basic and Pro are no longer sold. A student renewing one of them lands on
+  // Premium rather than a checkout that can't price their old plan.
+  const planDef = plansForTrack(profile.track).find((p) => p.tier === plan);
+  if (!planDef) redirect(`/checkout?plan=${PREMIUM_TIER}`);
   const testMode = (process.env.NEXT_PUBLIC_PAYMONGO_PUBLIC_KEY ?? "").startsWith("pk_test_");
 
   return (

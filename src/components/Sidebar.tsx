@@ -24,7 +24,9 @@ export default function Sidebar({
   const visible = visibleNavItems(role, plan);
   // Never in the iOS app: App Store Guideline 3.1.1 forbids pointing at a
   // purchase made outside Apple's IAP.
-  const showUpgrade = !isIosApp && (plan === "free" || plan === "basic");
+  // Premium is the only plan sold, so anyone below it — free, or still on
+  // an old Basic or Pro plan — is offered it.
+  const showUpgrade = !isIosApp && plan !== "max_pro";
 
   return (
     <aside className="hidden w-60 shrink-0 flex-col px-4 py-6 lg:flex">
@@ -73,7 +75,7 @@ export default function Sidebar({
             href="/pricing"
             className="mb-2 flex items-center gap-3 rounded-xl bg-[var(--primary)]/10 px-3 py-2 text-sm font-medium text-[var(--primary)] hover:bg-[var(--primary)]/15"
           >
-            ✦ Upgrade plan
+            ✦ Get Premium
           </Link>
         )}
         <form action={signOut}>

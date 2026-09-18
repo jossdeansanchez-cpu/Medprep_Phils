@@ -26,7 +26,7 @@ export default async function ResourcesPage() {
 
   const { plan } = await getEntitlements();
 
-  // Available on every paid plan (Basic and up) — only the free plan is gated.
+  // Available on Premium and on the older Basic/Pro plans — only free is gated.
   if (!hasAtLeast(plan, "basic")) {
     return (
       <AppShell profile={profile} greeting="Study library" title="Resources">
@@ -34,11 +34,11 @@ export default async function ResourcesPage() {
           <UpgradeGate
             web={{
               title: "Resources come with any paid plan",
-              body: "Subscribe to unlock curated books, PDF references and review exams — starting with Basic.",
+              body: "Get Premium to unlock curated books, PDF references and review exams.",
             }}
             ios={{
               title: "Resources aren't included in your plan",
-              body: "Curated books, PDF references and review exams come with the Basic, Pro and Max Pro plans.",
+              body: "Curated books, PDF references and review exams come with Premium.",
             }}
           />
         </div>

@@ -25,7 +25,7 @@ export default async function AdminResourcesPage() {
         <h1 className="mb-3 text-xl font-semibold">Reference settings</h1>
         <ResourceForm />
         <p className="mt-3 text-xs text-[var(--muted)]">
-          Resources are visible to students on any paid plan (Basic, Pro or Max Pro).
+          Resources are visible to Premium students, and to students still on an older Basic or Pro plan.
         </p>
       </div>
 

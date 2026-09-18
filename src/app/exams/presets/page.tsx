@@ -34,12 +34,12 @@ export default async function PresetsPage() {
       <AppShell profile={profile} greeting="Build your own exams" title="Quiz Maker">
         <UpgradeGate
           web={{
-            title: "Quiz Maker is a Pro feature",
-            body: "Upgrade to Pro to build your own daily and weekly exams — you pick how many questions, and which subjects they come from.",
+            title: "Quiz Maker is a Premium feature",
+            body: "Upgrade to Premium to build your own daily and weekly exams — you pick how many questions, and which subjects they come from.",
           }}
           ios={{
             title: "Quiz Maker isn't included in your plan",
-            body: "Building your own daily and weekly exams, with your own question count, comes with the Pro and Max Pro plans.",
+            body: "Building your own daily and weekly exams, with your own question count, comes with Premium.",
           }}
         />
       </AppShell>

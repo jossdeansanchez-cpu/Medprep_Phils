@@ -439,7 +439,7 @@ export async function deleteAnnouncement(id: string) {
   revalidatePath("/", "layout");
 }
 
-/** Add a Max Pro study resource (book / PDF / review exam link). */
+/** Add a study resource (book / PDF / review exam link). */
 export async function createResource(
   _prev: FormState,
   formData: FormData

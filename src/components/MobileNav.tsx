@@ -23,7 +23,9 @@ export default function MobileNav({
   const [open, setOpen] = useState(false);
   const visible = visibleNavItems(role, plan);
   // See Sidebar — suppressed in the iOS app for Guideline 3.1.1.
-  const showUpgrade = !isIosApp && (plan === "free" || plan === "basic");
+  // Premium is the only plan sold, so anyone below it — free, or still on
+  // an old Basic or Pro plan — is offered it.
+  const showUpgrade = !isIosApp && plan !== "max_pro";
 
   // Close the drawer whenever the route changes.
   useEffect(() => {
@@ -116,7 +118,7 @@ export default function MobileNav({
                   onClick={() => setOpen(false)}
                   className="mb-2 flex items-center gap-3 rounded-xl bg-[var(--primary)]/10 px-3 py-2 text-sm font-medium text-[var(--primary)]"
                 >
-                  ✦ Upgrade plan
+                  ✦ Get Premium
                 </Link>
               )}
               <form action={signOut}>
