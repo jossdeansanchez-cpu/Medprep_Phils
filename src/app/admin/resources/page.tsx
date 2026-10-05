@@ -38,7 +38,7 @@ export default async function AdminResourcesPage() {
         ) : (
           <div className="space-y-3">
             {resources.map((r) => (
-              <div key={r.id} className="glass p-4">
+              <div key={r.id} className="glass-flat p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="mb-1 flex flex-wrap items-center gap-2">

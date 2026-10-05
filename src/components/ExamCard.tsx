@@ -27,7 +27,7 @@ export default async function ExamCard({
   const showCount = remainingForKind !== null && remainingForKind > 0 && remainingForKind <= 3;
 
   return (
-    <div className="glass lift flex flex-col justify-between gap-3 p-5">
+    <div className="glass-flat lift flex flex-col justify-between gap-3 p-5">
       <div>
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <span className="badge bg-[var(--primary)]/10 text-[var(--primary)]">

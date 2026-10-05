@@ -148,7 +148,7 @@ export default async function ResultsPage({
             </div>
           )}
           {rows.map((r) => (
-            <div key={r.item_no} className="glass p-5">
+            <div key={r.item_no} className="glass-flat p-5">
               <p className="mb-1 text-xs font-medium uppercase tracking-wide text-[var(--muted)]">
                 Q{r.item_no} · {r.subject_name} ·{" "}
                 <span className={r.is_correct ? "text-[var(--primary)]" : "text-[var(--danger)]"}>

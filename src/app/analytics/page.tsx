@@ -50,6 +50,18 @@ export default async function AnalyticsPage() {
   const mastery = (masteryData ?? []) as MasteryRow[];
   const weakest = mastery.slice(0, 3);
 
+  /*
+   * Bars are drawn with a percentage height, which only resolves against a
+   * parent that has a definite height of its own. The columns used to be sized
+   * by `items-end` to fit their label, so every bar computed to 0 and the chart
+   * rendered empty under a correct row of numbers. Each column is now h-full
+   * with the bar in its own flex-1 track.
+   *
+   * Only the last 20 sittings are plotted; past that the bars are too thin to
+   * read and the trend is what the student is actually looking at.
+   */
+  const recent = attempts.slice(-20);
+
   return (
     <AppShell profile={profile} greeting="Performance insights" title="Analytics">
       <div className="space-y-4">
@@ -61,16 +73,19 @@ export default async function AnalyticsPage() {
               Take a mock exam to start tracking your scores.
             </p>
           ) : (
-            <div className="flex h-40 items-end gap-2">
-              {attempts.map((a, i) => {
-                const v = a.general_average ?? 0;
+            <div className="flex h-40 gap-2">
+              {recent.map((a, i) => {
+                // numeric comes back from PostgREST as a string.
+                const v = Math.min(100, Math.max(0, Number(a.general_average ?? 0)));
                 return (
-                  <div key={i} className="flex flex-1 flex-col items-center gap-1">
-                    <div
-                      className="w-full rounded-t bg-[var(--primary)]"
-                      style={{ height: `${Math.max(2, v)}%` }}
-                      title={`${v}%`}
-                    />
+                  <div key={i} className="flex h-full flex-1 flex-col items-center gap-1">
+                    <div className="flex w-full flex-1 items-end">
+                      <div
+                        className="w-full rounded-t bg-[var(--primary)]"
+                        style={{ height: `${Math.max(2, v)}%` }}
+                        title={`${Math.round(v)}%`}
+                      />
+                    </div>
                     <span className="text-[10px] text-[var(--muted)]">{Math.round(v)}</span>
                   </div>
                 );

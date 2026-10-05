@@ -117,7 +117,7 @@ function AttemptRow({ a }: { a: AttemptSummary }) {
   const when = new Date(a.submittedAt ?? a.startedAt);
 
   return (
-    <div className="glass lift flex flex-wrap items-center gap-x-4 gap-y-3 p-4">
+    <div className="glass-flat lift flex flex-wrap items-center gap-x-4 gap-y-3 p-4">
       <div className="min-w-0 flex-1">
         <p className="truncate font-semibold">{a.title}</p>
         <p className="mt-0.5 text-xs text-[var(--muted)]">
