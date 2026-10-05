@@ -68,6 +68,21 @@ body {
   .glass {
     @apply rounded-2xl border border-white/60 bg-white/55 shadow-[0_8px_30px_rgba(20,40,40,0.06)] backdrop-blur-xl;
   }
+  /*
+   * Same card, no backdrop-filter — for anything rendered once per list item.
+   *
+   * Every .glass element is its own compositing layer that WebKit has to
+   * re-sample the page behind, and a 100-item exam review meant 100 of them.
+   * iOS killed the tab outright ("A problem repeatedly occurred"); Android
+   * survived it but scrolled badly. The background is opaque enough here that
+   * the blur was never visible through it anyway.
+   *
+   * Rule of thumb: .glass for cards there is a fixed, small number of on a
+   * page, .glass-flat inside any .map().
+   */
+  .glass-flat {
+    @apply rounded-2xl border border-white/60 bg-white/80 shadow-[0_8px_30px_rgba(20,40,40,0.06)];
+  }
   .glass-soft {
     @apply rounded-2xl border border-white/40 bg-white/35 backdrop-blur-md;
   }

@@ -86,7 +86,7 @@ export default async function ResourcesPage() {
                       href={r.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="glass lift flex flex-col gap-2 p-5"
+                      className="glass-flat lift flex flex-col gap-2 p-5"
                     >
                       <span className="badge self-start bg-[var(--primary)]/10 text-[var(--primary)]">
                         {KIND_LABEL[r.kind]}

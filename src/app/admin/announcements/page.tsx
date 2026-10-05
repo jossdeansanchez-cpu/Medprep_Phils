@@ -40,7 +40,7 @@ export default async function AnnouncementsPage() {
         ) : (
           <div className="space-y-3">
             {announcements.map((a) => (
-              <div key={a.id} className="glass p-4">
+              <div key={a.id} className="glass-flat p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <p className="font-semibold">{a.title}</p>
