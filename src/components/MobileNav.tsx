@@ -14,20 +14,20 @@ export default function MobileNav({
   name,
   plan = "free",
   track = DEFAULT_TRACK,
-  isIosApp = false,
+  isStoreApp = false,
 }: {
   role: Role;
   name: string | null;
   plan?: PlanTier;
   /** Decides what the plan is called and which students are offered an upgrade. */
   track?: ExamTrack;
-  isIosApp?: boolean;
+  isStoreApp?: boolean;
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const visible = visibleNavItems(role, plan);
-  // See Sidebar — suppressed in the iOS app for Guideline 3.1.1.
-  const showUpgrade = !isIosApp && offersUpgrade(plan, track);
+  // See Sidebar — suppressed in both store builds.
+  const showUpgrade = !isStoreApp && offersUpgrade(plan, track);
 
   // Close the drawer whenever the route changes.
   useEffect(() => {

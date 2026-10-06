@@ -34,7 +34,8 @@ export default function InstallPrompt() {
     // App Review engineer that they're looking at a wrapped website.
     if (isIosAppClient()) return;
 
-    // Already installed? Never nag.
+    // Already installed? Never nag. This is also what covers the Android app:
+    // a TWA reports display-mode: standalone, so it never reaches the prompt.
     const standalone =
       window.matchMedia("(display-mode: standalone)").matches ||
       // iOS Safari exposes this non-standard flag instead.

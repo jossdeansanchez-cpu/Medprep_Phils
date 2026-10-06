@@ -37,8 +37,14 @@ export async function checkDevice(): Promise<DeviceCheck> {
   const { data } = await supabase.rpc("register_device", {
     p_device: deviceId,
     p_user_agent: ua,
-    // Which pool this device counts against — the app has its own.
-    p_platform: await currentPlatform(),
+    // Which pool this device counts against — the iOS app has its own.
+    //
+    // Android stays in the browser pool on purpose, and register_device only
+    // accepts 'web' | 'ios-app' anyway (migration 0034). The iOS WebView has a
+    // private cookie jar, so it arrives with its own md_device and would
+    // otherwise burn a browser slot; a TWA shares Chrome's jar, so it presents
+    // the *same* md_device as Chrome on that phone and already is that device.
+    p_platform: (await currentPlatform()) === "ios-app" ? "ios-app" : "web",
   });
   const row = Array.isArray(data) ? data[0] : data;
   return {

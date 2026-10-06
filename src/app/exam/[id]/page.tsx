@@ -6,7 +6,7 @@ import ExpiredAttempt from "@/components/ExpiredAttempt";
 import DeviceLimitBlock from "@/components/DeviceLimitBlock";
 import { checkDevice } from "@/lib/devices";
 import { attemptDeadlineMs, isAttemptExpired } from "@/lib/attempt-expiry";
-import { isIosApp } from "@/lib/platform/server";
+import { isStoreApp } from "@/lib/platform/server";
 import { withSignedImages, examImageTtl } from "@/lib/images";
 import { nmatDirectionsFor } from "@/lib/nmat-directions";
 import type { ExamMode, OptionLabel, QuestionOption } from "@/lib/types";
@@ -122,7 +122,7 @@ export default async function ExamPage({
       deadlineMs={deadlineMs}
       questions={withImages}
       directions={directions}
-      isIosApp={await isIosApp()}
+      isStoreApp={await isStoreApp()}
     />
   );
 }

@@ -24,7 +24,7 @@ export default async function AnalyticsPage() {
               title: `Analytics is a ${planLabel("max_pro", profile.track)} feature`,
               body: `Upgrade to ${planLabel("max_pro", profile.track)} to track your scores over time and spot weak subjects.`,
             }}
-            ios={{
+            app={{
               title: "Analytics isn't included in your plan",
               body: `Tracking scores over time and weak-subject insights come with ${planLabel("max_pro", profile.track)}.`,
             }}

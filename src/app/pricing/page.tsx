@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { getCurrentProfile } from "@/lib/auth";
 import { getEntitlements } from "@/lib/billing/entitlements";
-import { isIosApp } from "@/lib/platform/server";
+import { isStoreApp } from "@/lib/platform/server";
 import type { PlanTier } from "@/lib/billing/plans";
 import { DEFAULT_TRACK } from "@/lib/tracks";
 import PricingClient from "./PricingClient";
@@ -9,9 +9,9 @@ import PricingClient from "./PricingClient";
 export const metadata = { title: "Plans & Pricing — MEDprep" };
 
 export default async function PricingPage() {
-  // App Store Guideline 3.1.1 — this page cannot exist inside the iOS app.
+  // App Store 3.1.1 / Play Payments — this page cannot exist inside a store build.
   // The proxy blocks it too; this is the inner of two layers.
-  if (await isIosApp()) notFound();
+  if (await isStoreApp()) notFound();
 
   const profile = await getCurrentProfile();
   let currentPlan: PlanTier = "free";
