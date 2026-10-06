@@ -7,7 +7,7 @@ import type { Profile } from "@/lib/types";
 import { getEntitlements } from "@/lib/billing/entitlements";
 import { checkDevice } from "@/lib/devices";
 import { getNotifications } from "@/lib/notifications";
-import { isIosApp } from "@/lib/platform/server";
+import { isStoreApp } from "@/lib/platform/server";
 
 export default async function AppShell({
   profile,
@@ -23,11 +23,11 @@ export default async function AppShell({
   // All independent DB round trips fire together instead of one at a time —
   // this was the main source of the per-click lag between pages.
   const entPromise = getEntitlements();
-  const [device, ent, notifications, iosApp] = await Promise.all([
+  const [device, ent, notifications, storeApp] = await Promise.all([
     checkDevice(),
     entPromise,
     getNotifications(entPromise),
-    isIosApp(),
+    isStoreApp(),
   ]);
   if (!device.allowed) {
     return <DeviceLimitBlock maxDevices={device.maxDevices} currentDeviceId={device.deviceId} />;
@@ -50,7 +50,7 @@ export default async function AppShell({
           name={profile.full_name}
           plan={plan}
           track={profile.track}
-          isIosApp={iosApp}
+          isStoreApp={storeApp}
         />
 
         <div className="min-w-0 flex-1 lg:border-l lg:border-white/50">
@@ -59,7 +59,7 @@ export default async function AppShell({
             name={profile.full_name}
             plan={plan}
             track={profile.track}
-            isIosApp={iosApp}
+            isStoreApp={storeApp}
           />
 
           <main className="px-4 py-5 sm:px-8 sm:py-6">

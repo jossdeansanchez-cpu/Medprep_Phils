@@ -39,7 +39,7 @@ export default async function ResourcesPage() {
                   ? "Get Premium to unlock curated books, PDF references and review exams."
                   : "Subscribe to unlock curated books, PDF references and review exams — starting with Basic.",
             }}
-            ios={{
+            app={{
               title: "Resources aren't included in your plan",
               body:
                 profile.track === "nmat"

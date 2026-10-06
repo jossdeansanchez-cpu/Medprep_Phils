@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getEntitlements, getExamUsage, hasAtLeast, remaining } from "@/lib/billing/entitlements";
 import ExamCard from "@/components/ExamCard";
 import PresetCard from "@/components/PresetCard";
-import { isIosApp } from "@/lib/platform/server";
+import { isStoreApp } from "@/lib/platform/server";
 import {
   CATEGORY_ORDER,
   CATEGORY_LABELS,
@@ -41,10 +41,10 @@ export default async function ExamsCatalog({
     .eq("track", profile.track)
     .order("created_at", { ascending: false });
 
-  const [{ plan }, usage, iosApp] = await Promise.all([
+  const [{ plan }, usage, storeApp] = await Promise.all([
     getEntitlements(),
     getExamUsage(),
-    isIosApp(),
+    isStoreApp(),
   ]);
   // Exams left this period, per kind — drives the card CTA.
   const leftMock = remaining(usage, true);
@@ -95,7 +95,7 @@ export default async function ExamsCatalog({
         ) : (
           <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {presetResults.map((p) => (
-              <PresetCard key={p.id} preset={p} iosApp={iosApp} locked={false} />
+              <PresetCard key={p.id} preset={p} storeApp={storeApp} locked={false} />
             ))}
             {results.map((t) => (
               <ExamCard
@@ -147,7 +147,7 @@ export default async function ExamsCatalog({
               </div>
               <div className="stagger grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {presets.map((p) => (
-                  <PresetCard key={p.id} preset={p} iosApp={iosApp} locked={false} />
+                  <PresetCard key={p.id} preset={p} storeApp={storeApp} locked={false} />
                 ))}
               </div>
             </section>

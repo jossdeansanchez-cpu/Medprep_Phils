@@ -10,7 +10,7 @@ import DeleteAccount from "./DeleteAccount";
 import TrackSwitcher from "./TrackSwitcher";
 import { trackFullName, trackLabel } from "@/lib/tracks";
 import { applyPaymentIntentResult } from "@/lib/billing/paymongo-fulfillment";
-import { isIosApp } from "@/lib/platform/server";
+import { isStoreApp } from "@/lib/platform/server";
 
 export default async function AccountPage({
   searchParams,
@@ -37,7 +37,7 @@ export default async function AccountPage({
   const ent = await getEntitlements();
   const isPaid = ent.plan !== "free";
   const renewTo = renewalTier(ent.plan, profile.track);
-  const iosApp = await isIosApp();
+  const storeApp = await isStoreApp();
   const devices = await listMyDevices();
   const maxDevices = profile.role === "admin" ? null : DEVICE_LIMITS[ent.plan];
 
@@ -76,13 +76,13 @@ export default async function AccountPage({
             <p className="mt-2 text-sm text-[var(--muted)]">
               {ent.entitled ? "Access ends" : "Access ended"} on{" "}
               {new Date(ent.currentPeriodEnd).toLocaleDateString()}.
-              {/* The renewal sentence describes buying outside the App Store,
-                  which Guideline 3.1.1 forbids mentioning in the iOS app. */}
-              {!iosApp && " Billing is manual — pay again anytime to extend your plan by another year."}
+              {/* The renewal sentence describes buying outside the store, which both
+                  stores forbid mentioning inside their builds. */}
+              {!storeApp && " Billing is manual — pay again anytime to extend your plan by another year."}
             </p>
           )}
 
-          {!iosApp && (
+          {!storeApp && (
             <div className="mt-5 flex gap-3">
               {isPaid ? (
                 // Same plan where this track still sells it; otherwise the top

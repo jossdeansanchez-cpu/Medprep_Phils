@@ -8,7 +8,7 @@ import { PRESET_MAX_PER_STUDENT } from "@/lib/presets";
 import { getCurrentProfile } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { getEntitlements, hasAtLeast } from "@/lib/billing/entitlements";
-import { isIosApp } from "@/lib/platform/server";
+import { isStoreApp } from "@/lib/platform/server";
 import {
   buildCoverage,
   computeAvailability,
@@ -37,7 +37,7 @@ export default async function PresetsPage() {
             title: `Quiz Maker is a ${profile.track === "nmat" ? "Premium" : "Pro"} feature`,
             body: `Upgrade to ${profile.track === "nmat" ? "Premium" : "Pro"} to build your own daily and weekly exams — you pick how many questions, and which subjects they come from.`,
           }}
-          ios={{
+          app={{
             title: "Quiz Maker isn't included in your plan",
             body: `Building your own daily and weekly exams, with your own question count, comes with ${profile.track === "nmat" ? "Premium" : "the Pro and Max Pro plans"}.`,
           }}
@@ -47,7 +47,7 @@ export default async function PresetsPage() {
   }
 
   const supabase = await createClient();
-  const [{ data: presetData }, { data: subjectData }, { data: coverageRows }, iosApp] =
+  const [{ data: presetData }, { data: subjectData }, { data: coverageRows }, storeApp] =
     await Promise.all([
       supabase
         .from("exam_templates")
@@ -61,7 +61,7 @@ export default async function PresetsPage() {
       // is admin-only RLS, so without this the form has no idea how big the
       // pool is.
       supabase.rpc("my_question_coverage"),
-      isIosApp(),
+      isStoreApp(),
     ]);
 
   const presets = (presetData ?? []) as ExamTemplate[];
@@ -124,7 +124,7 @@ export default async function PresetsPage() {
                 <PresetCard
                   key={p.id}
                   preset={p}
-                  iosApp={iosApp}
+                  storeApp={storeApp}
                   locked={false}
                   available={availableFor(p)}
                   manage={{ subjects, coverage }}

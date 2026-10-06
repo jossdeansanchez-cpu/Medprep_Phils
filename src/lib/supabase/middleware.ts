@@ -4,19 +4,21 @@ import {
   PLATFORM_COOKIE,
   PLATFORM_COOKIE_VALUE,
   detectPlatform,
+  isStoreAppPlatform,
 } from "@/lib/platform";
 
 /**
- * Routes the iOS app must never reach. App Store Guideline 3.1.1 forbids
- * selling digital subscriptions outside Apple's IAP, and the "link to your own
- * site" allowance does not cover the Philippines storefront.
+ * Routes neither store build may reach. App Store Guideline 3.1.1 and Google
+ * Play's Payments policy both forbid selling digital subscriptions outside their
+ * own billing, and the "link to your own site" allowance covers neither
+ * storefront in the Philippines.
  *
- * The pages themselves also call notFound() for iOS — this is the outer layer,
- * so a purchase route added later is blocked even if nobody remembers to guard
- * it. /api/paymongo/webhook is deliberately absent: PayMongo calls it
- * server-to-server and it never carries the app's user-agent.
+ * The pages themselves also call notFound() — this is the outer layer, so a
+ * purchase route added later is blocked even if nobody remembers to guard it.
+ * /api/paymongo/webhook is deliberately absent: PayMongo calls it
+ * server-to-server and it never carries an app's headers.
  */
-const IOS_BLOCKED_PREFIXES = [
+const STORE_BLOCKED_PREFIXES = [
   "/pricing",
   "/checkout",
   "/api/paymongo/create-intent",
@@ -63,20 +65,23 @@ export async function updateSession(request: NextRequest) {
   // setAll() above mutates request.cookies and rebuilds the response, so a
   // snapshot of request.headers taken before that would drop the refreshed
   // Supabase cookies and cause intermittent logouts.
-  const isIosApp =
-    detectPlatform(
-      request.headers.get("user-agent"),
-      request.cookies.get(PLATFORM_COOKIE)?.value
-    ) === "ios-app";
+  const platform = detectPlatform({
+    userAgent: request.headers.get("user-agent"),
+    platformCookie: request.cookies.get(PLATFORM_COOKIE)?.value,
+    requestedWith: request.headers.get("x-requested-with"),
+    referer: request.headers.get("referer"),
+  });
+  const isIosApp = platform === "ios-app";
+  const isStoreApp = isStoreAppPlatform(platform);
 
-  if (isIosApp) {
+  if (isStoreApp) {
     // The landing page carries pricing nav, a plans CTA and a ₱ price table.
     if (path === "/") {
       const url = request.nextUrl.clone();
       url.pathname = "/login";
       return NextResponse.redirect(url);
     }
-    if (IOS_BLOCKED_PREFIXES.some((p) => path.startsWith(p))) {
+    if (STORE_BLOCKED_PREFIXES.some((p) => path.startsWith(p))) {
       return new NextResponse(null, { status: 404 });
     }
   }
@@ -107,6 +112,11 @@ export async function updateSession(request: NextRequest) {
 
   // Sticky marker so a request that arrives without the app's user-agent is
   // still recognised. Additive — it never touches the Supabase cookies above.
+  //
+  // iOS only, deliberately. A TWA shares Chrome's cookie jar for this origin, so
+  // the same marker set from the Android app would follow the user into Chrome
+  // and hide the pricing page from them in their own browser. See the detection
+  // comment in src/lib/platform.ts.
   if (isIosApp && request.cookies.get(PLATFORM_COOKIE)?.value !== PLATFORM_COOKIE_VALUE) {
     response.cookies.set(PLATFORM_COOKIE, PLATFORM_COOKIE_VALUE, {
       httpOnly: true,

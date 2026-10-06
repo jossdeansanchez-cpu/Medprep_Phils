@@ -31,13 +31,13 @@ import type { ExamTemplate, Subject } from "@/lib/types";
  */
 export default function PresetCard({
   preset,
-  iosApp,
+  storeApp,
   locked,
   available,
   manage,
 }: {
   preset: ExamTemplate;
-  iosApp: boolean;
+  storeApp: boolean;
   locked: boolean;
   available?: number;
   manage?: { subjects: Subject[]; coverage: Coverage };
@@ -84,9 +84,9 @@ export default function PresetCard({
         )}
       </div>
 
-      {locked && iosApp ? (
+      {locked && storeApp ? (
         // States the limit and stops. No CTA, no mention that a purchase
-        // exists elsewhere — App Store Guideline 3.1.1.
+        // exists elsewhere — App Store 3.1.1 / Play Payments policy.
         <button
           type="button"
           disabled

@@ -46,7 +46,7 @@ export default function ExamRunner({
   deadlineMs,
   questions,
   directions = null,
-  isIosApp = false,
+  isStoreApp = false,
 }: {
   attemptId: string;
   title: string;
@@ -56,7 +56,7 @@ export default function ExamRunner({
   questions: RunnerQuestion[];
   /** NMAT directions for the subjects in this attempt; null hides the button. */
   directions?: PartDirections[] | null;
-  isIosApp?: boolean;
+  isStoreApp?: boolean;
 }) {
   const isPractice = mode === "practice";
   // "Show answer" is for study, not simulation — a mock exam behaves like the
@@ -392,8 +392,8 @@ export default function ExamRunner({
       {capMessage && (
         <div className="mb-4 rounded-2xl border border-[var(--primary)]/40 bg-[var(--primary)]/[0.08] p-4 text-center">
           <p className="font-semibold">{capMessage}</p>
-          {/* No route to a purchase inside the iOS app — Guideline 3.1.1. */}
-          {!isIosApp && (
+          {/* No route to a purchase inside a store build. */}
+          {!isStoreApp && (
             <a href="/pricing" className="btn-primary mt-2 inline-flex">
               See plans
             </a>

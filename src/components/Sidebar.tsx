@@ -15,20 +15,21 @@ export default function Sidebar({
   name,
   plan = "free",
   track = DEFAULT_TRACK,
-  isIosApp = false,
+  isStoreApp = false,
 }: {
   role: Role;
   name: string | null;
   plan?: PlanTier;
   /** Decides what the plan is called and which students are offered an upgrade. */
   track?: ExamTrack;
-  isIosApp?: boolean;
+  isStoreApp?: boolean;
 }) {
   const pathname = usePathname();
   const visible = visibleNavItems(role, plan);
-  // Never in the iOS app: App Store Guideline 3.1.1 forbids pointing at a
-  // purchase made outside Apple's IAP.
-  const showUpgrade = !isIosApp && offersUpgrade(plan, track);
+  // Never in a store build: App Store Guideline 3.1.1 and Google Play's
+  // Payments policy both forbid pointing at a purchase made outside their
+  // own billing.
+  const showUpgrade = !isStoreApp && offersUpgrade(plan, track);
 
   return (
     <aside className="hidden w-60 shrink-0 flex-col px-4 py-6 lg:flex">
