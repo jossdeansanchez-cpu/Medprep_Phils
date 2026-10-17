@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createRecoveryLink } from "@/lib/auth/recovery-link";
 import { sendEmail, emailLayout, emailConfigured } from "@/lib/email";
 import { coerceTrack } from "@/lib/tracks";
+import { isIosApp } from "@/lib/platform/server";
 
 export type AuthState = { error?: string; message?: string } | undefined;
 
@@ -141,4 +142,53 @@ export async function updatePassword(
 
   revalidatePath("/", "layout");
   redirect("/dashboard");
+}
+
+/**
+ * Start the Google OAuth hand-off.
+ *
+ * Returns nothing on success — Supabase hands back a consent URL and we send
+ * the browser there, so the flow continues in /auth/callback.
+ *
+ * Deliberately not offered inside the iOS app. Google refuses OAuth in an
+ * embedded WebView (`disallowed_useragent`), so the button would be dead, and
+ * App Store Guideline 4.8 would then require Sign in with Apple alongside it.
+ * The Android build is a TWA — literally Chrome — so it is fine there.
+ *
+ * `track` only rides along from the signup form. public.handle_new_user() reads
+ * it out of user metadata, and Google will not supply it, so without this every
+ * Google signup would silently land on PLE — wrong bank, wrong plan, no error.
+ * Existing users signing in never send it, so their track is never touched.
+ */
+export async function signInWithGoogle(formData: FormData) {
+  if (await isIosApp()) redirect("/login");
+
+  const track = coerceTrack(formData.get("track"));
+  const next = String(formData.get("redirect") ?? "/dashboard") || "/dashboard";
+  const isSignup = String(formData.get("mode") ?? "") === "signup";
+
+  // Canonical origin first, not the request's. Google only redirects to URIs
+  // pre-registered on the OAuth client, so a preview deployment's own origin
+  // would be rejected — better to land back on production than to fail.
+  const origin = process.env.NEXT_PUBLIC_SITE_URL || "https://medprep-teal.vercel.app";
+  const callback = new URL("/auth/callback", origin);
+  callback.searchParams.set("next", next);
+  if (isSignup) callback.searchParams.set("track", track);
+
+  const supabase = await createClient();
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: callback.toString(),
+      // Always show the chooser. Students share devices, and silently reusing
+      // whichever Google account happens to be signed in is how someone ends up
+      // in a classmate's account.
+      queryParams: { prompt: "select_account" },
+    },
+  });
+
+  if (error || !data?.url) {
+    redirect(`/login?error=${encodeURIComponent("Google sign-in is unavailable right now.")}`);
+  }
+  redirect(data.url);
 }
