@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import AuthForm from "@/components/AuthForm";
+import GoogleSignIn from "@/components/GoogleSignIn";
 import { getCurrentProfile } from "@/lib/auth";
 import { coerceTrack } from "@/lib/tracks";
 
@@ -16,7 +17,11 @@ export default async function SignupPage({
 
   return (
     <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center px-4">
-      <AuthForm mode="signup" defaultTrack={coerceTrack(track)} />
+      <AuthForm
+        mode="signup"
+        defaultTrack={coerceTrack(track)}
+        oauth={<GoogleSignIn mode="signup" track={coerceTrack(track)} />}
+      />
     </main>
   );
 }
